@@ -1,0 +1,165 @@
+/* themes/cyberpunk.css */
+
+:root[data-inleo-skin="cyberpunk"] {
+    --cyber-red: #ff3333;
+    --cyber-dark-red: #2a0a0e;
+    --cyber-cyan: #00ffff;
+    --cyber-bg: #0d0103;
+}
+
+body {
+    background-color: var(--cyber-bg) !important;
+    color: var(--cyber-cyan) !important;
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* The primary background image with fixed positioning */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: var(--bg-image) !important;
+    background-size: cover !important;
+    background-position: center !important;
+    z-index: -1;
+    opacity: 0.25;
+    /* Darken the image so it acts as texture/background */
+}
+
+/* Force backgrounds transparent so image shows */
+div,
+nav,
+aside,
+main,
+header,
+footer,
+section,
+article {
+    background-color: transparent !important;
+    border-color: var(--cyber-red) !important;
+}
+
+/* Panels with dark red translucency to match 000.png */
+[class*="bg-"],
+[class*="card"],
+[class*="Panel"],
+[class*="Container"],
+[class*="Layout"] {
+    background-color: rgba(20, 2, 5, 0.85) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+/* Borders and tech lines */
+div,
+article,
+[class*="border"] {
+    border-radius: 0 !important;
+}
+
+hr,
+[class*="separator"],
+[class*="Divider"] {
+    border-top: 1px solid var(--cyber-cyan) !important;
+}
+
+/* Typography Overrides */
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+[class*="text-"] {
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* Links and Highlight Text - Cyan */
+a,
+[class*="title"],
+h1,
+h2,
+h3,
+[class*="username"] {
+    color: var(--cyber-cyan) !important;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.6) !important;
+    text-transform: uppercase !important;
+}
+
+a:hover {
+    color: var(--cyber-red) !important;
+    text-shadow: 0 0 4px rgba(255, 51, 51, 0.6) !important;
+}
+
+/* Text that isn't highlighted should be a duller red/gray or cyan */
+p,
+span {
+    color: #a0c0c0 !important;
+}
+
+span[class*="text-orange"],
+a[class*="text-orange"] {
+    color: var(--cyber-red) !important;
+}
+
+/* Buttons - Cyberpunk Red Borders */
+button,
+[role="button"],
+[class*="btn"] {
+    background: rgba(42, 10, 14, 0.9) !important;
+    border: 1px solid var(--cyber-red) !important;
+    color: var(--cyber-cyan) !important;
+    text-transform: uppercase !important;
+    font-weight: bold !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 5px rgba(255, 51, 51, 0.5), inset 0 0 5px rgba(255, 51, 51, 0.2) !important;
+    transition: all 0.2s ease !important;
+}
+
+button:hover,
+[role="button"]:hover,
+[class*="btn"]:hover {
+    background: var(--cyber-red) !important;
+    color: #000 !important;
+    box-shadow: 0 0 10px rgba(255, 51, 51, 0.8), inset 0 0 10px rgba(255, 51, 51, 0.5) !important;
+}
+
+/* Inputs and Textareas */
+input,
+textarea,
+[contenteditable="true"] {
+    background-color: #000 !important;
+    border: 1px solid var(--cyber-cyan) !important;
+    color: var(--cyber-cyan) !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+input:focus,
+textarea:focus,
+[contenteditable="true"]:focus {
+    outline: none !important;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.6) !important;
+}
+
+/* Tweaking icons / svgs */
+svg {
+    fill: var(--cyber-cyan) !important;
+}
+
+svg:hover {
+    fill: var(--cyber-red) !important;
+}
+
+/* TGLD Price Update text etc (from screenshot) */
+[class*="text-white"] {
+    color: var(--cyber-cyan) !important;
+}
+
+[class*="text-gray"] {
+    color: #88aaaa !important;
+}

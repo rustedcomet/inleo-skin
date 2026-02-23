@@ -1,0 +1,44 @@
+{
+    "manifest_version": 3,
+    "name": "Inleo Skins",
+    "version": "1.0",
+    "description": "Customizable themes and skins for inleo.io",
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
+        "*://inleo.io/*",
+        "*://*.inleo.io/*"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Inleo Skins"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://inleo.io/*",
+                "*://*.inleo.io/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "img/*",
+                "themes/*"
+            ],
+            "matches": [
+                "*://inleo.io/*",
+                "*://*.inleo.io/*"
+            ]
+        }
+    ]
+}

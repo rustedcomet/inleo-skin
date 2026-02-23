@@ -1,0 +1,688 @@
+/* themes/cyberpunk-v2.css — Precision port of stitch/code.html */
+
+/* =========================================================
+   FONTS
+   ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* =========================================================
+   CSS VARIABLES — Taken directly from code.html
+   ========================================================= */
+:root[data-inleo-skin="cyberpunk-v2"] {
+    --primary: #00f3ff;
+    --secondary: #ff2a00;
+    --accent: #9d00ff;
+    --bg-dark: #050508;
+    --panel-bg: #0a0a12;
+}
+
+/* =========================================================
+   0. NUCLEAR RESET — Kill ALL rounded corners site-wide
+   ========================================================= */
+*,
+*::before,
+*::after {
+    border-radius: 0px !important;
+}
+
+/* =========================================================
+   1. BODY — Background from code.html body styles
+   ========================================================= */
+body {
+    background-color: var(--bg-dark) !important;
+    background-image:
+        radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.05) 0%, transparent 70%),
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)) !important;
+    background-size: 100% 100%, 100% 4px, 3px 100% !important;
+    background-attachment: fixed !important;
+    font-family: "Rajdhani", sans-serif !important;
+    color: #ffffff !important;
+    overflow-x: hidden !important;
+}
+
+/* =========================================================
+   2. SCANLINES OVERLAY — from code.html .scanlines::before
+   ========================================================= */
+body::before {
+    content: " " !important;
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)) !important;
+    background-size: 100% 2px, 3px 100% !important;
+    z-index: 9998 !important;
+    pointer-events: none !important;
+}
+
+/* =========================================================
+   3. GODZILLA BG — REMOVED
+   The fixed 600x600 element was causing a visible gray square
+   behind any transparent content (images, expanded comments,
+   publish page). Removing entirely for a clean dark aesthetic.
+   ========================================================= */
+body::after {
+    display: none !important;
+}
+
+/* =========================================================
+   3b. GLOBAL GRAY BACKGROUND KILL
+   Inleo uses bg-zinc-800, bg-gray-200, bg-neutral-800 etc.
+   These all render as visible gray squares. Kill them ALL.
+   ========================================================= */
+[class*="bg-zinc"],
+[class*="bg-gray"],
+[class*="bg-neutral"],
+.dark\:bg-zinc-800,
+.bg-gray-200,
+.dark\:bg-zinc-700,
+.dark\:bg-neutral-800 {
+    background-color: var(--panel-bg) !important;
+}
+
+/* =========================================================
+   4. LAYOUT CONTAINERS — Strip Inleo defaults
+   ONLY on the main wrapper containers, NOT on everything with bg-pri.
+   We target ONLY the outer layout elements.
+   ========================================================= */
+body>div,
+body>div>div {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* The outer main wrapper */
+body main.relative {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* Main feed column — keep transparent so bg peeks through gaps */
+main#threads {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* Feed column borders */
+main#threads,
+.tbl\:border-x {
+    border-color: rgba(0, 243, 255, 0.1) !important;
+}
+
+/* Right sidebar wrapper — transparent */
+aside {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* The right sidebar inner container */
+aside>div {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* =========================================================
+   5. POST CARDS — SOLID dark background
+   
+   DOM Path found by browser inspection:
+   main#threads
+     > div:nth-child(2) [class="flex flex-col flex-1"]  ← feed container
+       > div [class="w-full h-full border-b border-pri"] ← individual posts
+   
+   We use multiple selectors to be absolutely sure.
+   The key fix: use a SOLID color, not rgba transparency.
+   ========================================================= */
+
+/* Target the feed container's direct children (posts) */
+main#threads>div.flex-col>div,
+main#threads>div:nth-child(2)>div,
+main#threads>.flex-col>div {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.15) !important;
+    position: relative !important;
+    margin-bottom: 4px !important;
+    z-index: 1 !important;
+}
+
+/* Broader fallback: any div.border-b inside main#threads */
+main#threads div.border-b.border-pri,
+main#threads div.border-b.dark\:border-pri-d {
+    background: var(--panel-bg) !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* ---- FIX: Image containers inside posts ----
+   Inleo uses bg-gray-200 / dark:bg-zinc-800 for image wrappers.
+   These render as rgb(39,39,42) = visible gray "white square".
+   Override them to match the dark panel color. */
+main#threads .bg-gray-200,
+main#threads .dark\:bg-zinc-800,
+main#threads [class*="bg-zinc"],
+main#threads [class*="bg-gray"] {
+    background-color: #0a0a12 !important;
+}
+
+/* ---- FIX: Expanded comments / reply containers ----
+   When comments expand, inner containers with bg-pri become visible.
+   Make ALL bg-pri inside main#threads use the panel background. */
+main#threads .bg-pri,
+main#threads .dark\:bg-pri-d,
+main#threads [class*="bg-pri-hov"],
+main#threads [class*="hover:bg-pri"],
+main#threads .sm\:hover\:bg-pri-hov,
+main#threads .sm\:dark\:hover\:bg-pri-hov-d {
+    background-color: var(--panel-bg) !important;
+}
+
+/* Reply/comment thread dividers should also be dark */
+main#threads [class*="hover:bg-pri"] {
+    background-color: var(--panel-bg) !important;
+}
+
+main#threads [class*="hover:bg-pri"]:hover {
+    background-color: rgba(0, 243, 255, 0.03) !important;
+}
+
+/* Corner bracket top-left — cyan */
+main#threads>div.flex-col>div::before,
+main#threads>div:nth-child(2)>div::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -1px !important;
+    left: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-top: 2px solid var(--primary) !important;
+    border-left: 2px solid var(--primary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+/* Corner bracket bottom-right — red */
+main#threads>div.flex-col>div::after,
+main#threads>div:nth-child(2)>div::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    right: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-bottom: 2px solid var(--secondary) !important;
+    border-right: 2px solid var(--secondary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+/* The sticky header bar (For You, Latest...) */
+main#threads>div:first-child {
+    background: rgba(5, 5, 8, 0.9) !important;
+    backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.15) !important;
+    z-index: 999 !important;
+}
+
+/* The compose box area */
+main#threads>div:nth-child(3) {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    z-index: 1 !important;
+}
+
+/* The infinite scroll container */
+main#threads>div:nth-child(4) {
+    background: transparent !important;
+}
+
+/* =========================================================
+   5b. RIGHT SIDEBAR PANELS
+   ========================================================= */
+aside>div>div {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    position: relative !important;
+    margin-bottom: 16px !important;
+}
+
+aside>div>div::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -1px !important;
+    left: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-top: 2px solid var(--primary) !important;
+    border-left: 2px solid var(--primary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+aside>div>div::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    right: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-bottom: 2px solid var(--secondary) !important;
+    border-right: 2px solid var(--secondary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+/* =========================================================
+   6. LEFT SIDEBAR / NAV
+   ========================================================= */
+
+/* Nav panel — solid dark with cyber-panel corners */
+nav {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    position: relative !important;
+    padding: 16px 4px !important;
+    margin: 8px !important;
+}
+
+nav::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -1px !important;
+    left: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-top: 2px solid var(--primary) !important;
+    border-left: 2px solid var(--primary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+nav::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    right: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-bottom: 2px solid var(--secondary) !important;
+    border-right: 2px solid var(--secondary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+/* The inner div of each nav link */
+nav a.group div,
+nav a div,
+nav>div div {
+    background: transparent !important;
+    border: none !important;
+    border-left: 2px solid transparent !important;
+    padding: 10px 16px !important;
+    margin: 0 !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Active nav item — cyan left border + subtle bg */
+nav a.item-active div,
+nav a.group.item-active div {
+    background: rgba(0, 243, 255, 0.05) !important;
+    border-left: 2px solid var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+/* Hover state for nav links */
+nav a.group div:hover,
+nav a div:hover {
+    background: rgba(0, 243, 255, 0.05) !important;
+    border-left: 2px solid var(--primary) !important;
+}
+
+/* Nav text styling */
+nav span {
+    font-family: "Share Tech Mono", monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+/* Nav icons */
+nav svg {
+    fill: rgba(255, 255, 255, 0.6) !important;
+}
+
+nav a.item-active svg {
+    fill: var(--primary) !important;
+}
+
+/* =========================================================
+   6b. HIDE SPECIFIC NAV ITEMS
+   DOM structure from inspection:
+   [0] a[href="/threads"] = Home        → KEEP
+   [1] a[href="/explore"] = Explore     → HIDE
+   [2] a[href="/posts"] = Articles      → KEEP
+   [3] a[href="/shorts"] = Shorts       → HIDE
+   [4] DIV = Communities                → HIDE
+   [5] a[href="/notifications"]         → KEEP (move after Profile)
+   [6] DIV = Bookmarks                  → HIDE
+   [7] DIV = Premium                    → KEEP
+   [8] DIV = Wallet                     → KEEP
+   [9] DIV = Profile                    → KEEP
+   [10] DIV = (mobile)                  → leave
+   [11] DIV = More                      → HIDE
+   [12] DIV = Publish                   → KEEP
+   ========================================================= */
+/* Use maximum specificity to defeat Tailwind pc:block that re-shows items.
+   Also kill ALL transitions to prevent hover glitches. */
+nav a[href="/explore"],
+nav a[href="/shorts"],
+nav a[href="/explore"] *,
+nav a[href="/shorts"] * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    transition: none !important;
+}
+
+/* Communities = 5th child, Bookmarks = 7th child, More = 12th child */
+nav>div:nth-child(5),
+nav>div:nth-child(7),
+nav>div:nth-child(12),
+nav>div:nth-child(5) *,
+nav>div:nth-child(7) *,
+nav>div:nth-child(12) * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    transition: none !important;
+}
+
+/* Kill transitions on ALL nav items to prevent glitch on hover */
+nav>*,
+nav>*>* {
+    transition: none !important;
+}
+
+/* =========================================================
+   6c. REORDER NOTIFICATIONS AFTER PROFILE
+   ========================================================= */
+nav {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+nav>* {
+    order: 0 !important;
+}
+
+nav>a:nth-child(1) {
+    order: 1 !important;
+}
+
+/* Home */
+nav>a:nth-child(3) {
+    order: 2 !important;
+}
+
+/* Articles */
+nav>div:nth-child(8) {
+    order: 3 !important;
+}
+
+/* Premium */
+nav>div:nth-child(9) {
+    order: 4 !important;
+}
+
+/* Wallet */
+nav>div:nth-child(10) {
+    order: 5 !important;
+}
+
+/* Profile */
+nav>a:nth-child(6) {
+    order: 6 !important;
+}
+
+/* Notifications - AFTER Profile */
+nav>div:nth-child(11) {
+    order: 7 !important;
+}
+
+/* Mobile profile */
+nav>div:nth-child(13) {
+    order: 8 !important;
+}
+
+/* Publish */
+
+/* =========================================================
+   6d. REMOVE INLEO LOGO NEXT TO PREMIUM
+   ========================================================= */
+nav>div:nth-child(8) svg,
+nav a[href="/premium"] svg {
+    display: none !important;
+}
+
+/* =========================================================
+   7. LOGO REPLACEMENT
+   ========================================================= */
+a[aria-label="Threads Page"] svg {
+    display: none !important;
+}
+
+a[aria-label="Threads Page"] {
+    font-family: "Share Tech Mono", monospace !important;
+    font-size: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 12px 16px !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+a[aria-label="Threads Page"]::before {
+    content: "token" !important;
+    font-family: 'Material Symbols Outlined' !important;
+    font-size: 22px !important;
+    color: var(--primary) !important;
+    margin-right: 8px !important;
+}
+
+a[aria-label="Threads Page"]::after {
+    content: "INLEO // OS_0.4.2_GLITCH" !important;
+    font-family: "Share Tech Mono", monospace !important;
+    font-size: 14px !important;
+    color: var(--primary) !important;
+    text-shadow: 1px 0 var(--secondary), -1px 0 var(--primary) !important;
+    letter-spacing: -0.5px !important;
+    white-space: nowrap !important;
+}
+
+/* =========================================================
+   8. BUTTONS
+   ========================================================= */
+button.rounded-full,
+.pc\:bg-acc,
+.dark\:pc\:bg-acc {
+    background: rgba(0, 243, 255, 0.1) !important;
+    border: 1px solid rgba(0, 243, 255, 0.5) !important;
+    color: var(--primary) !important;
+    font-family: "Share Tech Mono", monospace !important;
+    font-size: 12px !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+    padding: 10px 32px !important;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.1) !important;
+    transition: all 0.3s ease !important;
+}
+
+button.rounded-full:hover,
+.pc\:bg-acc:hover {
+    background: rgba(0, 243, 255, 0.3) !important;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) !important;
+}
+
+/* Generic action buttons — minimal */
+button:not(.rounded-full):not(.pc\:bg-acc) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 4px 8px !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    transition: color 0.2s ease !important;
+    font-family: "Share Tech Mono", monospace !important;
+}
+
+button:not(.rounded-full):not(.pc\:bg-acc):hover {
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   9. INPUTS / COMPOSE BOX
+   ========================================================= */
+input,
+textarea,
+[contenteditable="true"] {
+    background: transparent !important;
+    border: none !important;
+    color: var(--primary) !important;
+    font-family: "Share Tech Mono", monospace !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: rgba(0, 243, 255, 0.2) !important;
+}
+
+input:focus,
+textarea:focus,
+[contenteditable="true"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* =========================================================
+   10. HUD LINE — dividers
+   ========================================================= */
+hr {
+    border-color: rgba(0, 243, 255, 0.1) !important;
+}
+
+/* =========================================================
+   11. TEXT STYLING
+   ========================================================= */
+p,
+span {
+    font-family: "Rajdhani", sans-serif !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+a {
+    color: var(--primary) !important;
+    font-family: "Share Tech Mono", monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    transition: color 0.2s ease !important;
+    text-decoration: none !important;
+}
+
+a:hover {
+    text-shadow: 1px 0 var(--secondary), -1px 0 var(--primary) !important;
+}
+
+[class*="font-semibold"],
+[class*="font-medium"],
+[class*="font-bold"] {
+    color: var(--primary) !important;
+    font-family: "Share Tech Mono", monospace !important;
+}
+
+[class*="text-gray"],
+.text-pri\/60,
+.dark\:text-pri-d\/60 {
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-family: "Share Tech Mono", monospace !important;
+    font-size: 10px !important;
+    letter-spacing: 0.15em !important;
+}
+
+/* =========================================================
+   12. SVG/ICONS
+   ========================================================= */
+svg {
+    fill: currentColor !important;
+}
+
+.text-acc svg,
+svg.text-acc {
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   13. SCROLLBAR
+   ========================================================= */
+::-webkit-scrollbar {
+    width: 2px !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary) !important;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+/* =========================================================
+   14. SELECTION
+   ========================================================= */
+::selection {
+    background: var(--primary) !important;
+    color: #000 !important;
+}
+
+/* =========================================================
+   15. FEED TABS
+   ========================================================= */
+main#threads>div:first-child a {
+    font-family: "Share Tech Mono", monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-bottom: 2px solid transparent !important;
+}
+
+main#threads>div:first-child a:hover,
+main#threads>div:first-child a[class*="active"] {
+    color: var(--primary) !important;
+    border-bottom-color: var(--primary) !important;
+}
+
+/* =========================================================
+   16. STICKY HEADER
+   ========================================================= */
+.sticky,
+[class*="sticky"] {
+    background: rgba(5, 5, 8, 0.9) !important;
+    backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.2) !important;
+}
