@@ -1,46 +1,64 @@
-let currentThemeLink = null;
+let currentThemeSheet = null;
+let currentThemeName = null;
 
 // Initial load
 chrome.storage.sync.get(['activeTheme'], (result) => {
     if (result.activeTheme) {
         applyTheme(result.activeTheme);
     }
-    // Start the persistence observer after initial theme is applied
-    startThemeObserver();
 });
 
-function applyTheme(themeName) {
-    // Remove existing theme
-    if (currentThemeLink) {
-        currentThemeLink.remove();
-        currentThemeLink = null;
-    }
-
-    // If none, stop
+async function applyTheme(themeName) {
+    // If none, remove everything
     if (!themeName || themeName === 'none') {
+        document.adoptedStyleSheets = document.adoptedStyleSheets.filter(s => s !== currentThemeSheet);
+        currentThemeSheet = null;
+        currentThemeName = null;
         document.documentElement.removeAttribute('data-inleo-skin');
         document.documentElement.style.removeProperty('--bg-image');
         removePriceTicker();
+        removeFontLinks();
         return;
     }
 
     // Set skin attribute
     document.documentElement.setAttribute('data-inleo-skin', themeName);
+    document.documentElement.style.setProperty('--bg-image', '');
 
-    // Set background image CSS variable dynamically to bypass chrome-extension:// path issues in injected CSS
-    let bgImageUrl = '';
-    document.documentElement.style.setProperty('--bg-image', bgImageUrl);
+    try {
+        // Fetch the CSS file text
+        const cssUrl = chrome.runtime.getURL(`themes/${themeName}.css`);
+        const response = await fetch(cssUrl);
+        const cssText = await response.text();
 
-    // Inject the theme CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = chrome.runtime.getURL(`themes/${themeName}.css`);
-    link.id = 'inleo-skin-theme-stylesheet';
+        // Extract @import rules (not supported in constructed stylesheets)
+        // and inject them as separate <link> tags for fonts
+        const importRegex = /@import\s+url\(['"]?([^'")\s]+)['"]?\)\s*;?/g;
+        let match;
+        let fontIndex = 0;
+        while ((match = importRegex.exec(cssText)) !== null) {
+            injectFontLink(match[1], fontIndex++);
+        }
 
-    document.head.appendChild(link);
-    currentThemeLink = link;
-    console.log(`[Inleo Skins] Applied theme: ${themeName} with bg ${bgImageUrl}`);
+        // Strip @import rules from the CSS text
+        const strippedCss = cssText.replace(importRegex, '');
+
+        // Create or update the constructed stylesheet
+        if (!currentThemeSheet) {
+            currentThemeSheet = new CSSStyleSheet();
+        }
+        currentThemeSheet.replaceSync(strippedCss);
+
+        // Add to document.adoptedStyleSheets if not already there
+        if (!document.adoptedStyleSheets.includes(currentThemeSheet)) {
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, currentThemeSheet];
+        }
+
+        currentThemeName = themeName;
+        console.log(`[Inleo Skins] Applied theme via adoptedStyleSheets: ${themeName}`);
+    } catch (err) {
+        console.error('[Inleo Skins] Failed to apply theme:', err);
+    }
 
     // Inject price ticker for cyberpunk themes
     if (themeName.includes('cyberpunk')) {
@@ -48,55 +66,29 @@ function applyTheme(themeName) {
     }
 }
 
-/* =========================================================
-       THEME PERSISTENCE — MutationObserver
-       Inleo is a SPA; client-side navigation can remove our
-       injected <link> and price ticker. This observer detects
-       removal and re-injects automatically.
-       ========================================================= */
-let themeObserver = null;
-let reapplyDebounce = null;
-
-function startThemeObserver() {
-    if (themeObserver) return; // already watching
-
-    themeObserver = new MutationObserver(() => {
-        // Check if our stylesheet was removed
-        if (!document.getElementById('inleo-skin-theme-stylesheet')) {
-            // Debounce to avoid rapid re-fire during SPA transitions
-            clearTimeout(reapplyDebounce);
-            reapplyDebounce = setTimeout(() => {
-                chrome.storage.sync.get(['activeTheme'], (result) => {
-                    if (result.activeTheme && result.activeTheme !== 'none') {
-                        console.log('[Inleo Skins] Stylesheet removed by SPA — re-injecting');
-                        applyTheme(result.activeTheme);
-                    }
-                });
-            }, 200);
-        }
-    });
-
-    // Watch <head> for child additions/removals
-    themeObserver.observe(document.head, { childList: true });
-
-    // Also watch for full-body re-renders (some SPAs replace <body> children)
-    const bodyObserver = new MutationObserver(() => {
-        // Re-inject ticker if it disappeared
-        chrome.storage.sync.get(['activeTheme'], (result) => {
-            if (result.activeTheme && result.activeTheme.includes('cyberpunk')) {
-                if (!document.getElementById('cyber-price-ticker')) {
-                    waitForNavAndInjectTicker();
-                }
-            }
-        });
-    });
-    bodyObserver.observe(document.body || document.documentElement, {
-        childList: true,
-        subtree: false
-    });
-
-    console.log('[Inleo Skins] Theme persistence observer active');
+/* Inject a font URL as a <link> tag (idempotent) */
+function injectFontLink(url, index) {
+    const id = `inleo-skin-font-${index}`;
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = url;
+    link.id = id;
+    (document.head || document.documentElement).appendChild(link);
 }
+
+/* Remove all injected font <link> tags */
+function removeFontLinks() {
+    document.querySelectorAll('link[id^="inleo-skin-font-"]').forEach(el => el.remove());
+}
+
+/* =========================================================
+   THEME PERSISTENCE — adoptedStyleSheets
+   Using document.adoptedStyleSheets instead of a <link> tag.
+   Adopted stylesheets live on the document object, NOT in the
+   DOM, so Next.js SPA navigation cannot remove them.
+   No MutationObserver needed for stylesheet persistence.
+   ========================================================= */
 
 /* =========================================================
    PRICE TICKER — HIVE, LEO, BTC
@@ -223,40 +215,42 @@ function updateTickerRow(id, coinData) {
 }
 
 /* =========================================================
-   BUG FIX — Theme persistence (The "Nuclear" Option)
-   Inleo is a Next.js SPA. Standard MutationObservers and 
-   history API hooks often fail to catch React completely
-   replacing the <head> during bfcache restorations or 
-   complex client-side routes (like /premium).
-   A lightweight interval guarantees the CSS stays injected
-   and the price ticker survives structural DOM wipes.
+   DOM MAINTENANCE POLLER
+   The CSS itself persists via adoptedStyleSheets (no re-injection
+   needed). This poller only maintains DOM-injected elements
+   (ticker, settings link, mute buttons) and the data attribute
+   that SPA navigation can strip.
    ========================================================= */
 setInterval(() => {
     chrome.storage.sync.get(['activeTheme'], (result) => {
         const theme = result.activeTheme;
         if (!theme || theme === 'none') {
-            if (currentThemeLink) {
-                currentThemeLink.remove();
-                currentThemeLink = null;
+            // Theme was disabled — clean up adopted sheet
+            if (currentThemeSheet) {
+                document.adoptedStyleSheets = document.adoptedStyleSheets.filter(s => s !== currentThemeSheet);
+                currentThemeSheet = null;
+                currentThemeName = null;
             }
             return;
         }
 
-        // 1. Ensure the <link> tag is actually in the DOM
-        const existing = document.getElementById('inleo-skin-theme-stylesheet');
-
-        // 2. Ensure the <html> data attribute is present
+        // 1. Ensure the <html> data attribute survives SPA navigation
         const dataAttr = document.documentElement.getAttribute('data-inleo-skin');
+        if (dataAttr !== theme) {
+            document.documentElement.setAttribute('data-inleo-skin', theme);
+        }
 
-        if (!existing || dataAttr !== theme) {
-            console.log('[Inleo Skins] Poller detected missing theme — re-applying');
+        // 2. Ensure adoptedStyleSheet + fonts are still attached
+        //    (bfcache restore or edge-case SPA wipe)
+        const sheetMissing = !currentThemeSheet || !document.adoptedStyleSheets.includes(currentThemeSheet) || currentThemeName !== theme;
+        const fontsMissing = !document.getElementById('inleo-skin-font-0');
+        if (sheetMissing || fontsMissing) {
             applyTheme(theme);
         }
 
-        // 3. Ensure the ticker survives body replacements (Market Data bug fix)
+        // 4. Ensure the ticker survives body replacements
         if (theme.includes('cyberpunk')) {
             if (!document.getElementById('cyber-price-ticker')) {
-                // The nav might rebuild itself, so we check if nav is there
                 const nav = document.querySelector('nav');
                 if (nav && nav.parentElement) {
                     injectPriceTicker();
@@ -264,16 +258,12 @@ setInterval(() => {
             }
         }
 
-        // --- NEW FEATURES DATA ACQUISITION ---
+        // --- Feature maintenance ---
         updateCurrentUser();
-
-        // 4. Ensure Mute functionality survives SPA navigation (Premium page bug fix)
         processFeed();
-
-        // 5. Inject Settings Link after Profile
         injectSettingsLink();
 
-        // 6. Handle Wallet Page Layout Overlaps
+        // Handle Wallet Page Layout Overlaps
         if (window.location.pathname.includes('/wallet')) {
             document.body.classList.add('inleo-wallet-page');
         } else {
@@ -386,19 +376,53 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 });
 
+function isInsidePopupOrCard(el) {
+    // Walk up ancestors checking for popup/hover card containers
+    let ancestor = el;
+    for (let i = 0; i < 15; i++) {
+        ancestor = ancestor.parentElement;
+        if (!ancestor || ancestor === document.body) break;
+        // Radix tooltip/popover wrappers
+        if (ancestor.getAttribute('data-radix-popper-content-wrapper') !== null) return true;
+        if (ancestor.getAttribute('role') === 'tooltip' || ancestor.getAttribute('role') === 'dialog') return true;
+        if (ancestor.id && ancestor.id.startsWith('radix-')) return true;
+        // Inleo hover card: has shadow class + text-xs + rounded-lg
+        const cls = ancestor.className || '';
+        if (cls.includes('shadow-[') && cls.includes('text-xs')) return true;
+        // Generic: element with position:absolute/fixed that isn't a post wrapper
+        const pos = getComputedStyle(ancestor).position;
+        if ((pos === 'fixed') && !ancestor.closest('nav') && !ancestor.closest('main#threads')) return true;
+    }
+    return false;
+}
+
 function processFeed() {
     // Clear all existing muted classes to recalculate
     document.querySelectorAll('.inleo-muted-post').forEach(el => {
         el.classList.remove('inleo-muted-post');
     });
 
+    // Remove orphaned mute buttons (naked buttons without a wrapper, or inside popups)
+    document.querySelectorAll('.inleo-mute-btn').forEach(btn => {
+        const wrapper = btn.closest('.inleo-mute-wrapper');
+        if (!wrapper || isInsidePopupOrCard(btn)) {
+            if (wrapper) wrapper.remove();
+            else btn.remove();
+        }
+    });
+
     const profileLinks = document.querySelectorAll('a[href^="/profile/"]');
 
     profileLinks.forEach(link => {
-        // Avoid running inside popups or tooltips
-        if (link.closest('div[role="tooltip"]') || link.closest('.absolute') || link.closest('[id^="radix-"]')) {
-            return;
-        }
+        // Skip links inside popups, tooltips, or hover cards
+        if (isInsidePopupOrCard(link)) return;
+
+        // Only inject mute buttons on the primary NAME link in post headers.
+        // Name links have font-bold class and contain a text <span> (not an avatar img).
+        if (!link.classList.contains('font-bold') && !link.className.includes('font-bold')) return;
+
+        // Also skip if this link is inside a <p> tag (it's an @mention in post body)
+        if (link.closest('p')) return;
 
         // Extract the username from the href
         const hrefParts = link.getAttribute('href').split('/profile/');
@@ -462,12 +486,17 @@ function processFeed() {
 }
 
 function injectMuteButton(link, username) {
-    // Prevent adding multiple buttons
-    if (link.parentElement.querySelector('.inleo-mute-btn')) return;
+    // The link's parent is a flex container like <div class="flex items-center">
+    // We need to ensure the mute button goes AFTER the link (to the right)
+    const parent = link.parentElement;
+    if (!parent) return;
+
+    // Prevent duplicates — check the parent container for existing mute buttons
+    if (parent.querySelector('.inleo-mute-btn')) return;
 
     const muteBtn = document.createElement('button');
     muteBtn.className = 'inleo-mute-btn';
-    muteBtn.textContent = '[ MUTE ]';
+    muteBtn.textContent = '[ mute ]';
     muteBtn.title = `Mute ${username}`;
 
     muteBtn.addEventListener('click', (e) => {
@@ -477,8 +506,14 @@ function injectMuteButton(link, username) {
         muteUser(username);
     });
 
-    // Inject it right after the profile link
-    link.parentElement.insertBefore(muteBtn, link.nextSibling);
+    // Wrap the mute button in an inline container
+    const wrapper = document.createElement('span');
+    wrapper.className = 'inleo-mute-wrapper';
+    wrapper.appendChild(muteBtn);
+
+    // Always insert as the LAST child of the parent flex container
+    // This ensures it always appears to the RIGHT of the username
+    parent.appendChild(wrapper);
 }
 
 function muteUser(username) {

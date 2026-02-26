@@ -297,7 +297,7 @@ nav {
     border: 1px solid rgba(0, 243, 255, 0.15) !important;
     position: relative !important;
     padding: 16px 4px !important;
-    margin: 8px !important;
+    margin: 8px 0 !important;
     overflow: hidden !important;
     /* Clip tooltip popovers injected by Inleo JS */
 }
@@ -544,9 +544,9 @@ a[aria-label="Threads Page"] {
     padding: 12px 16px 12px 18px !important;
     background: transparent !important;
     border: none !important;
-    width: 278px !important;
-    min-width: 278px !important;
-    margin-left: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
     box-sizing: border-box !important;
 }
 
@@ -698,7 +698,7 @@ svg.text-acc {
    13. SCROLLBAR
    ========================================================= */
 ::-webkit-scrollbar {
-    width: 2px !important;
+    width: 6px !important;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -905,11 +905,11 @@ nav a[href="/notifications"].item-active>div {
 #cyber-price-ticker {
     background: var(--panel-bg) !important;
     border: 1px solid rgba(0, 243, 255, 0.15) !important;
-    margin: 8px 0 8px 13px !important;
-    padding: 12px 16px 12px 17px !important;
+    margin: 8px 0 !important;
+    padding: 12px 16px !important;
     position: relative !important;
     font-family: "Share Tech Mono", monospace !important;
-    width: 278px !important;
+    width: auto !important;
     box-sizing: border-box !important;
 }
 
@@ -1130,28 +1130,52 @@ nav div[class*="w-[calc"] a:hover {
    Styles for the injected [ MUTE ] button and hiding logic.
    ========================================================= */
 
-/* The injected Mute button */
-button.inleo-mute-btn {
+/* The injected Mute button
+   Uses doubled class selector to beat the generic button rule in §8
+   which has specificity (0,2,1) via button:not(.rounded-full):not(.pc\:bg-acc) */
+button.inleo-mute-btn.inleo-mute-btn {
     font-family: "Share Tech Mono", monospace !important;
     font-size: 10px !important;
-    color: #ffffff !important;
-    background: var(--panel-bg) !important;
-    border: 1px solid var(--secondary) !important;
-    padding: 2px 6px !important;
-    margin-left: 8px !important;
+    color: #ff2a00 !important;                     /* Red text by default */
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
     cursor: pointer !important;
     letter-spacing: 0.1em !important;
     border-radius: 0 !important;
-    /* Keep it sharp and cyber */
     transition: all 0.2s ease !important;
-    box-shadow: 0 0 5px rgba(255, 42, 0, 0.1) !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
 }
 
 /* Hover state for the mute button */
-button.inleo-mute-btn:hover {
-    background: rgba(255, 42, 0, 0.1) !important;
-    color: var(--secondary) !important;
-    box-shadow: 0 0 10px rgba(255, 42, 0, 0.3) !important;
+button.inleo-mute-btn.inleo-mute-btn:hover {
+    background: rgba(255, 42, 0, 0.15) !important;
+    color: #fff !important;                        /* White text on hover */
+    text-shadow: 0 0 6px rgba(255, 42, 0, 0.6) !important;
+}
+
+/* Wrapper ensures mute button always appears to the right of the username */
+.inleo-mute-wrapper {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+    margin-left: 6px !important;
+    order: 99 !important;                          /* Force to the right in flex containers */
+}
+
+/* ---- HIDE mute buttons inside hover/popup cards ----
+   Inleo hover cards use a shadow + text-xs pattern.
+   This prevents duplicated mute buttons in profile popups. */
+div[class*="shadow-["][class*="text-xs"] .inleo-mute-btn,
+div[class*="shadow-["][class*="text-xs"] .inleo-mute-wrapper,
+[data-radix-popper-content-wrapper] .inleo-mute-btn,
+[data-radix-popper-content-wrapper] .inleo-mute-wrapper,
+div[role="tooltip"] .inleo-mute-btn,
+div[role="tooltip"] .inleo-mute-wrapper {
+    display: none !important;
 }
 
 /* Hide posts that belong to muted users */
