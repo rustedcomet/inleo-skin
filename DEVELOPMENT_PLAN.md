@@ -270,6 +270,122 @@ These rules MUST be followed in every new theme CSS file to prevent similar bugs
 - **Root Cause**: Discrepancies between inner padding and border boundaries vs. textual coordinates. DevTools evaluation revealed the inner text of the Navigation Items started at the `289.5px` X-coordinate, while the injected boxes fell short at `287.5px` and `288.5px`.
 - **Fix**: Utilized `box-sizing: border-box` explicitly alongside pixel-perfect padding calculations (`padding-left: 18px` for the Glitch box and `padding-left: 17px` for the ticker) to force their content to begin at exactly `289.5px`, mathematically synchronizing the visual left edge.
 
+### 3.5 Left Sidebar Panel Width & Alignment Unification
+**Bug**: The three left sidebar panels — the glitch logo/header, the navigation menu, and the market data price ticker — were misaligned with inconsistent widths. They did not share the same visual edges.
+
+#### Root Cause
+Each panel had different hardcoded widths and asymmetric margins:
+- The logo had `width: 278px` + `margin-left: 12px` (hardcoded offset).
+- The nav had `margin: 8px` on all four sides, introducing horizontal offset.
+- The ticker had `width: 278px` + `margin: 8px 0 8px 13px` (asymmetric left margin) + `padding: 12px 16px 12px 17px` (asymmetric left padding).
+
+#### Technical Fix
+All three panels were normalized to fill their parent container instead of relying on hardcoded pixel widths:
+
+1. **Logo panel** (`a[aria-label="Threads Page"]`):
+   - `width: 278px` → `width: 100%`
+   - `min-width: 278px` → `min-width: 0`
+   - `margin-left: 12px` → `margin-left: 0`
+
+2. **Navigation panel** (`nav`):
+   - `margin: 8px` → `margin: 8px 0` (removed left/right margins)
+
+3. **Price ticker panel** (`#cyber-price-ticker`):
+   - `width: 278px` → `width: auto`
+   - `margin: 8px 0 8px 13px` → `margin: 8px 0` (removed asymmetric left margin)
+   - `padding: 12px 16px 12px 17px` → `padding: 12px 16px` (symmetrical padding)
+
+**Result**: All three panels now render at the same width (288px), perfectly aligned at the same left and right edges.
+
+### 3.6 Theme Flash Fix During SPA Navigation (`adoptedStyleSheets` Rewrite)
+**Bug**: When clicking "Premium" in the left navigation (or pressing the browser back button), the page would flash Inleo's default/original theme for 1–2 seconds before the custom theme re-appeared.
+
+#### Root Cause
+The theme CSS was injected as a `<link>` DOM node in `<head>`. Inleo is a Next.js SPA — client-side navigation physically removes and replaces `<head>` children, destroying the injected link element. The `MutationObserver`-based poller would detect the loss and re-inject, but with a perceptible delay.
+
+#### Technical Fix — `document.adoptedStyleSheets`
+Replaced the entire DOM-based `<link>` injection strategy with `document.adoptedStyleSheets`, which attaches CSS directly to the `Document` object rather than the DOM tree. SPA navigation cannot remove adopted stylesheets.
+
+**Key changes in `content.js`:**
+
+1. **`applyTheme()` rewritten as `async`:**
+   - Fetches the CSS file text using `fetch()` + `chrome.runtime.getURL()`.
+   - Extracts `@import` rules via regex (constructed stylesheets do not support `@import`).
+   - Injects font URLs as separate `<link>` tags via a new `injectFontLink()` helper.
+   - Strips `@import` rules from the CSS text.
+   - Creates a `CSSStyleSheet` and loads CSS via `sheet.replaceSync()`.
+   - Adds the sheet to `document.adoptedStyleSheets`.
+
+2. **`startThemeObserver()` removed entirely:**
+   - The `MutationObserver` on `<head>` for `childList` changes was deleted.
+   - The `bodyObserver` watching for full-body re-renders was deleted.
+   - All associated state variables (`themeObserver`, `reapplyDebounce`) were removed.
+
+3. **DOM maintenance poller simplified:**
+   - No longer checks for a `<link>` tag in the DOM.
+   - Now only maintains: the `data-inleo-skin` HTML attribute, font `<link>` re-injection if `<head>` was wiped, ticker/settings/mute DOM elements, and a fallback check that the adopted stylesheet is still attached (for bfcache restore edge cases).
+
+4. **Fallback mechanism:** If `adoptedStyleSheets` fails for any reason, the function gracefully falls back to the old `<link>` injection method with a console warning.
+
+**Result**: Zero flash when navigating via SPA links or browser back/forward. The adopted stylesheet survives all navigation events with all CSS rules intact.
+
+### 3.7 Extension Version Bump (v1.0 → v1.1)
+- Bumped `manifest.json` version from `"1.0"` to `"1.1"` to force Chrome to invalidate its content script cache after the `adoptedStyleSheets` rewrite. Chrome aggressively caches content scripts — even hard-reloading the tab was insufficient without a version bump and full extension reload.
+
+### 3.8 Mute Button Polish — Positioning, Color & Popup Card Cleanup
+
+Three visual bugs with the `[ mute ]` button were reported and fixed in a single pass:
+
+#### Bug 1: Mute Button Appearing Left of Username
+
+The `[ mute ]` button inconsistently appeared to the left or right of the username (e.g., `[ mute ] Khal` instead of `Khal [ mute ]`).
+
+**Root Cause**: `processFeed()` iterated ALL `a[href^="/profile/"]` links — including avatar image links and `@mention` links inside post body `<p>` tags. Some of these links appeared before the bold username link in DOM order, so mute buttons injected on them rendered to the left. Additionally, `injectMuteButton()` used `insertBefore(wrapper, link.nextSibling)` which was position-dependent rather than deterministic.
+
+**Fix (content.js)**:
+1. Filtered injection targets to only `font-bold` name links (the actual username display), skipping avatar links and `@mention` links inside `<p>`.
+2. Changed `injectMuteButton()` to use `parent.appendChild(wrapper)` — always appending as the last child of the flex container guarantees rightmost position.
+3. Added `order: 99 !important` on `.inleo-mute-wrapper` in CSS as a visual positioning fallback even if DOM order is imperfect.
+4. Added orphan cleanup at the start of `processFeed()` — any naked mute buttons without wrappers (from React reconciliation stripping wrapper elements) are removed before re-injection.
+
+#### Bug 2: Mute Button Not Displaying in Red
+
+The `[ mute ]` text rendered as white/gray instead of the intended red color.
+
+**Root Cause**: CSS specificity battle. The theme's generic button override rule `button:not(.rounded-full):not(.pc\:bg-acc)` in section 8 has specificity `(0,2,1)`, which beat the original `button.inleo-mute-btn` selector at `(0,1,1)`. The generic rule's `color: var(--text-color)` (white) won over the mute button's intended red.
+
+**Fix (cyberpunk-v2.css)**: Doubled the class selector to `button.inleo-mute-btn.inleo-mute-btn`, raising specificity to `(0,2,1)` — matching the generic rule but appearing later in the stylesheet (cascade wins). Used hardcoded `#ff2a00` instead of `var(--secondary)` to guarantee the exact red regardless of variable state. Hover effect preserved: white text with `rgba(255, 42, 0, 0.15)` background and red text-shadow glow.
+
+#### Bug 3: Duplicate Mute Buttons & Layout Breakage in Hover Popup Card
+
+Hovering over a username revealed a Radix UI profile popup card containing duplicate `[ mute ]` buttons and a displaced Follow/Unfollow button.
+
+**Root Cause**: The popup card contained its own `a[href^="/profile/"]` links, and `processFeed()` injected mute buttons into them. The old popup exclusion filter `link.closest('.absolute')` checked for the Tailwind CSS *class* `.absolute`, but the hover card ancestors used *computed* `position: absolute` without that class — so the filter missed them entirely.
+
+**Fix (content.js)**: Added `isInsidePopupOrCard()` function that walks up to 15 ancestors checking for:
+- `data-radix-popper-content-wrapper` attribute (Radix tooltip/popper system)
+- `role="tooltip"` or `role="dialog"` attributes
+- IDs starting with `radix-`
+- Class pattern `shadow-[` + `text-xs` (Inleo hover card fingerprint)
+- Computed `position: fixed` (excluding `<nav>` and `main#threads` to avoid false positives)
+
+**Fix (cyberpunk-v2.css)**: Added defensive CSS rules to hide any mute buttons that slip through the JS filter:
+```css
+div[class*="shadow-["][class*="text-xs"] .inleo-mute-btn,
+div[class*="shadow-["][class*="text-xs"] .inleo-mute-wrapper,
+[data-radix-popper-content-wrapper] .inleo-mute-btn,
+[data-radix-popper-content-wrapper] .inleo-mute-wrapper,
+div[role="tooltip"] .inleo-mute-btn,
+div[role="tooltip"] .inleo-mute-wrapper {
+    display: none !important;
+}
+```
+
+**Important lesson**: An initial attempt also added `overflow: hidden` and `max-width: 320px` to the hover card container (`div[class*="shadow-["][class*="text-xs"]`), which successfully hid the mute buttons but also clipped the Follow/Unfollow button entirely. These layout constraints were removed — the CSS `display: none` rules on the mute buttons themselves are sufficient without altering the card's native dimensions.
+
+### 3.9 Scrollbar Width Increase
+- The global scrollbar (`::-webkit-scrollbar`) was widened from `2px` to `6px` in section 13 of `cyberpunk-v2.css`. At 2px the scrollbar thumb was nearly impossible to click and drag. The 6px width provides a usable grab target while preserving the same color scheme (cyan thumb via `var(--primary)`, transparent track).
+
 ---
 
 ## Future Phases
