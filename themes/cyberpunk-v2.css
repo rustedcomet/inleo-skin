@@ -151,12 +151,22 @@ main#threads>.flex-col>div {
     z-index: 1 !important;
 }
 
-/* Broader fallback: any div.border-b inside main#threads */
-main#threads div.border-b.border-pri,
-main#threads div.border-b.dark\:border-pri-d {
+/* Broader fallback: any div.border-b inside main#threads
+   IMPORTANT: exclude .sticky so the feed header keeps its z-[999] */
+main#threads div.border-b.border-pri:not(.sticky),
+main#threads div.border-b.dark\:border-pri-d:not(.sticky) {
     background: var(--panel-bg) !important;
     position: relative !important;
     z-index: 1 !important;
+}
+
+/* Feed sticky header — ensure z-index stays above post cards
+   Use multiple class selectors for maximum specificity */
+main#threads div.sticky,
+main#threads div.sticky.border-b,
+main#threads div.sticky[class*="z-"] {
+    z-index: 999 !important;
+    position: sticky !important;
 }
 
 /* ---- FIX: Image containers inside posts ----
@@ -288,6 +298,8 @@ nav {
     position: relative !important;
     padding: 16px 4px !important;
     margin: 8px !important;
+    overflow: hidden !important;
+    /* Clip tooltip popovers injected by Inleo JS */
 }
 
 nav::before {
@@ -316,16 +328,16 @@ nav::after {
     pointer-events: none !important;
 }
 
-/* The inner div of each nav link */
-nav a.group div,
-nav a div,
-nav>div div {
+/* The inner div of each nav link — apply ONLY to direct children */
+nav a.group>div,
+nav a>div,
+nav>div>div {
     background: transparent !important;
     border: none !important;
     border-left: 2px solid transparent !important;
     padding: 10px 16px !important;
     margin: 0 !important;
-    transition: all 0.2s ease !important;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
 }
 
 /* Active nav item — cyan left border + subtle bg */
@@ -340,7 +352,7 @@ nav a.group.item-active div {
 nav a.group div:hover,
 nav a div:hover {
     background: rgba(0, 243, 255, 0.05) !important;
-    border-left: 2px solid var(--primary) !important;
+    border-left-color: var(--primary) !important;
 }
 
 /* Nav text styling */
@@ -395,13 +407,30 @@ nav a[href="/shorts"] * {
     transition: none !important;
 }
 
-/* Communities = 5th child, Bookmarks = 7th child, More = 12th child */
-nav>div:nth-child(5),
-nav>div:nth-child(7),
-nav>div:nth-child(12),
-nav>div:nth-child(5) *,
-nav>div:nth-child(7) *,
-nav>div:nth-child(12) * {
+/* Communities, Bookmarks, More — hide using href-based selectors
+   that are immune to DOM changes from tooltip injection.
+   Previously used nth-child, which broke when Inleo's JS injected
+   ~40 tooltip nodes on hover, shifting all child indices. */
+nav div:has(> a[href="/communities"]),
+nav div:has(> a[href="/bookmarks"]),
+nav div:has(> a[href="/communities"]) *,
+nav div:has(> a[href="/bookmarks"]) * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    transition: none !important;
+}
+
+/* "More" has no identifying href, so we hide the div that contains
+   only a button (not a link) with "More" text. Target by :has selector. */
+nav>div.hidden.pc\:block:not(:has(a)):not(:has(button[class*="rounded-full"])) {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -421,8 +450,21 @@ nav>*>* {
     transition: none !important;
 }
 
+/* Dynamically injected tooltip/popper nodes: These are div elements
+   injected by Inleo's JS on hover that are NOT part of the nav structure.
+   Force them to be positioned absolute and invisible. */
+nav>div[data-radix-popper-content-wrapper],
+nav>div[style*="position"],
+nav>div:not([class]) {
+    position: absolute !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+}
+
 /* =========================================================
    6c. REORDER NOTIFICATIONS AFTER PROFILE
+   Using href-based selectors instead of nth-child to be immune
+   to DOM changes from tooltip injection.
    ========================================================= */
 nav {
     display: flex !important;
@@ -433,51 +475,51 @@ nav>* {
     order: 0 !important;
 }
 
-nav>a:nth-child(1) {
+/* Home */
+nav>a[href="/threads"] {
     order: 1 !important;
 }
 
-/* Home */
-nav>a:nth-child(3) {
+/* Articles */
+nav>a[href="/posts"] {
     order: 2 !important;
 }
 
-/* Articles */
-nav>div:nth-child(8) {
+/* Premium */
+nav>div:has(> a[href="/premium"]) {
     order: 3 !important;
 }
 
-/* Premium */
-nav>div:nth-child(9) {
+/* Wallet */
+nav>div:has(> a[href*="/wallet"]) {
     order: 4 !important;
 }
 
-/* Wallet */
-nav>div:nth-child(10) {
+/* Profile */
+nav>div:has(> a[href*="/profile"]):not(.sm\:hidden) {
     order: 5 !important;
 }
 
-/* Profile */
-nav>a:nth-child(6) {
+/* Notifications - AFTER Profile */
+nav>a[href="/notifications"] {
     order: 6 !important;
 }
 
-/* Notifications - AFTER Profile */
-nav>div:nth-child(11) {
+/* Mobile profile */
+nav>div.sm\:hidden {
     order: 7 !important;
 }
 
-/* Mobile profile */
-nav>div:nth-child(13) {
+/* Publish */
+nav>div:has(button):last-of-type {
     order: 8 !important;
 }
 
-/* Publish */
-
 /* =========================================================
-   6d. REMOVE INLEO LOGO NEXT TO PREMIUM
+   6d. HIDE PREMIUM POLYGON SVG
+   (We replace it with the "token" Material Symbol in §19)
    ========================================================= */
-nav>div:nth-child(8) svg,
+nav div:has(> a[href="/premium"]) svg,
 nav a[href="/premium"] svg {
     display: none !important;
 }
@@ -609,6 +651,12 @@ a:hover {
     text-shadow: 1px 0 var(--secondary), -1px 0 var(--primary) !important;
 }
 
+/* Exclude nav links from global a:hover text-shadow — it causes glitch flicker */
+nav a:hover,
+nav a.group:hover {
+    text-shadow: none !important;
+}
+
 [class*="font-semibold"],
 [class*="font-medium"],
 [class*="font-bold"] {
@@ -685,4 +733,383 @@ main#threads>div:first-child a[class*="active"] {
     background: rgba(5, 5, 8, 0.9) !important;
     backdrop-filter: blur(12px) !important;
     border-bottom: 1px solid rgba(0, 243, 255, 0.2) !important;
+}
+
+/* =========================================================
+   17. YOUR LISTS DROPDOWN (Bug 1)
+   The popover from "Your Lists" gets hidden behind other
+   elements or invisible due to z-index / background rules.
+   ========================================================= */
+[data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+    background: transparent !important;
+}
+
+div[role="menu"],
+div[role="listbox"],
+div[data-radix-menu-content],
+[data-radix-popper-content-wrapper]>div {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.3) !important;
+    z-index: 9999 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+}
+
+div[role="menu"] a,
+div[role="menu"] button,
+div[role="listbox"] a,
+div[role="listbox"] button {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-family: "Share Tech Mono", monospace !important;
+}
+
+div[role="menu"] a:hover,
+div[role="menu"] button:hover,
+div[role="listbox"] a:hover,
+div[role="listbox"] button:hover {
+    background: rgba(0, 243, 255, 0.08) !important;
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   17b. YOUR LISTS DROPDOWN (feeds header)
+   The dropdown is an absolute-positioned div inside the
+   feed tab bar. §8 makes its buttons invisible.
+   ========================================================= */
+div[class*="top-full"][class*="z-1000"],
+div[class*="top-full"][class*="z-1000"] * {
+    font-family: "Share Tech Mono", monospace !important;
+}
+
+div[class*="top-full"][class*="z-1000"] {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.3) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+}
+
+div[class*="top-full"][class*="z-1000"] button {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border: none !important;
+}
+
+div[class*="top-full"][class*="z-1000"] button:hover {
+    background: rgba(0, 243, 255, 0.08) !important;
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   18. AVATAR OUTLINES (Change 2)
+   Followed users already have outline-purple-500.
+   Add a white outline to ALL avatar wrapper divs, then let
+   the purple override for followed users.
+   ========================================================= */
+
+/* White outline ONLY for unfollowed users (no purple class) */
+div.rounded-full:has(> span > span > img):not([class*="outline-purple"]) {
+    outline: 2px solid rgba(255, 255, 255, 0.5) !important;
+    outline-offset: 2px !important;
+}
+
+/* Followed users keep the site's native purple outline untouched */
+
+/* =========================================================
+   19. NAV MENU SYMMETRY + PREMIUM ICON (Change 3)
+   Normalize padding & alignment across all nav items.
+   Add the "token" icon to Premium to match the INLEO logo.
+   ========================================================= */
+
+/* Premium — SVG is hidden in §6d, add token icon via ::before
+   The inner div (.flex.items-center) is the actual flex container.
+   HOME/ARTICLES have: pc:pl-4 (16px) and gap-x-5 (20px). */
+
+/* Premium link — must be display: block like HOME/ARTICLES */
+nav a[href="/premium"] {
+    display: block !important;
+}
+
+/* Premium: inject token icon into the inner flex container */
+nav a[href="/premium"]>div::before {
+    content: "token" !important;
+    font-family: 'Material Symbols Outlined' !important;
+    font-size: 24px !important;
+    color: var(--primary) !important;
+    text-shadow: 1px 0 0 var(--secondary), -1px 0 0 var(--primary) !important;
+    flex-shrink: 0 !important;
+    line-height: 1 !important;
+}
+
+/* Premium: remove nesting offset from inner containers */
+nav a[href="/premium"]>div>span>div.flex.items-center {
+    gap: 0 !important;
+}
+
+/* =========================================================
+   19b. BUG FIX — Premium & Notifications alignment symmetry
+   Both items were shifted further right than Home/Articles
+   due to: Premium's extra DOM nesting layer, and both items
+   lacking explicit padding/gap normalisation.
+   Also: Inleo's native `text-white` class was making them
+   render white instead of the themed cyan.
+   ========================================================= */
+
+/* Normalize Premium inner flex container to match Home/Articles indent */
+nav a[href="/premium"]>div {
+    padding-left: 16px !important;
+    gap: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Normalize Notifications inner div to same indent */
+nav a[href="/notifications"]>div {
+    padding-left: 16px !important;
+    gap: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Kill white color on Premium & Notifications — use muted white like others */
+nav a[href="/premium"] span:not(.material-symbols-outlined),
+nav a[href="/premium"]>div,
+nav a[href="/notifications"] span,
+nav a[href="/notifications"]>div {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Keep icon/active-state cyan intact */
+nav a[href="/premium"].item-active span,
+nav a[href="/premium"].item-active>div,
+nav a[href="/notifications"].item-active span,
+nav a[href="/notifications"].item-active>div {
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   20. PRICE TICKER PANEL (Change 4)
+   Styled JS-injected element below the nav.
+   ========================================================= */
+#cyber-price-ticker {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    margin: 8px !important;
+    padding: 12px 16px !important;
+    position: relative !important;
+    font-family: "Share Tech Mono", monospace !important;
+}
+
+#cyber-price-ticker::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -1px !important;
+    left: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-top: 2px solid var(--primary) !important;
+    border-left: 2px solid var(--primary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+#cyber-price-ticker::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    right: -1px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-bottom: 2px solid var(--secondary) !important;
+    border-right: 2px solid var(--secondary) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+#cyber-price-ticker .ticker-title {
+    font-size: 16px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2em !important;
+    color: #ffffff !important;
+    margin-bottom: 10px !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+}
+
+#cyber-price-ticker .ticker-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.06) !important;
+}
+
+#cyber-price-ticker .ticker-row:last-child {
+    border-bottom: none !important;
+}
+
+#cyber-price-ticker .ticker-symbol {
+    font-size: 15px !important;
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+}
+
+#cyber-price-ticker .ticker-price {
+    font-size: 15px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+#cyber-price-ticker .ticker-change {
+    font-size: 13px !important;
+    letter-spacing: 0.05em !important;
+}
+
+#cyber-price-ticker .ticker-change.up {
+    color: #00ff88 !important;
+}
+
+#cyber-price-ticker .ticker-change.down {
+    color: var(--secondary) !important;
+}
+
+/* =========================================================
+   21. PROFILE PAGE — HIDE STATS + FIX SORT BUTTONS (Bug 5)
+   ========================================================= */
+
+/* Hide Following / Followers / Referrals row */
+div.flex.gap-4:has(> a[href*="/following"]) {
+    display: none !important;
+}
+
+/* Sort buttons (Latest, Oldest, Trending, Parents) — reduce padding
+   to prevent overflow. The parent container is h-14 with gap-2. */
+div.flex.flex-row.items-center.gap-2:has(> button) {
+    gap: 4px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+}
+
+div.flex.flex-row.items-center.gap-2:has(> button)::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Sort buttons themselves — smaller horizontal padding */
+div.flex.flex-row.items-center.gap-2>button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+/* Fix the active bar / indicator under sort buttons —
+   the border-t on the parent overflow container */
+div.relative.border-t:has(> div.flex.flex-row.items-center.gap-2) {
+    overflow: visible !important;
+}
+
+/* =========================================================
+   22. ARTICLES PAGE — INLEO DROPDOWN FIX (Bug 6, 8, & 9)
+   The filter row (Following, Subscriptions, Trending, Hot, New)
+   plus the INLEO dropdown at the end.
+   ========================================================= */
+
+/* Filter row wrapper — span full width, remove side padding */
+div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+}
+
+/* Make ONLY the filter group transparent wrappers so their buttons become direct children */
+div.tbl\:flex.flex-row.items-center.-left-3:has(> button),
+div.flex.flex-row.items-center.-left-3:has(> button) {
+    display: contents !important;
+}
+
+/* Make the INLEO wrapper itself the flexible grid item so it retains its relative positioning context for the dropdown */
+div.relative.flex.ml-auto:has(> button),
+div.relative.flex[class*="ml-auto"]:has(> button),
+div.relative.flex.tbl\:ml-5:has(> button) {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+/* Hide the native divider so it doesn't break the equal-width flex grid */
+span.w-\[1px\].h-5.bg-pri-d\/\[\.25\].dark\:bg-pri\/\[\.25\].flex {
+    display: none !important;
+}
+
+/* Force filter buttons AND the INLEO wrapper to stretch and share space symmetrically */
+div.tbl\:flex.flex-row.items-center.-left-3>button,
+div.flex.flex-row.items-center.-left-3>button,
+div.relative.flex.ml-auto:has(> button),
+div.relative.flex[class*="ml-auto"]:has(> button),
+div.relative.flex.tbl\:ml-5:has(> button) {
+    flex: 1 1 0 !important;
+}
+
+/* Global button styling for ALL inner buttons (filters and the INLEO button) */
+div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 button {
+    padding: 0 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    height: 36px !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+}
+
+/* Force the inner INLEO button to expand to completely fill its flexible wrapper */
+div.relative.flex.ml-auto>button,
+div.relative.flex[class*="ml-auto"]>button,
+div.relative.flex.tbl\:ml-5>button {
+    width: 100% !important;
+}
+
+
+
+/* =========================================================
+   23. PUBLISH DROPDOWN MENU (Bug 7)
+   The dropdown that appears after clicking "Publish".
+   Parent: div with bg-pri dark:bg-pri-d border rounded-xl
+   Children: div.flex.flex-col.w-full > a links
+   ========================================================= */
+
+/* The publish dropdown container */
+nav div[class*="w-[calc"] {
+    background: var(--panel-bg) !important;
+    border: 1px solid rgba(0, 243, 255, 0.3) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9),
+        0 0 15px rgba(0, 243, 255, 0.08) !important;
+    z-index: 9999 !important;
+    padding: 4px !important;
+}
+
+/* Publish dropdown links */
+nav div[class*="w-[calc"] a {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-family: "Share Tech Mono", monospace !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    padding: 10px 14px !important;
+    transition: all 0.15s ease !important;
+    background: transparent !important;
+}
+
+nav div[class*="w-[calc"] a:hover {
+    background: rgba(0, 243, 255, 0.08) !important;
+    color: var(--primary) !important;
+    border-left: 2px solid var(--primary) !important;
 }

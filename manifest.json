@@ -8,7 +8,8 @@
     ],
     "host_permissions": [
         "*://inleo.io/*",
-        "*://*.inleo.io/*"
+        "*://*.inleo.io/*",
+        "*://api.coingecko.com/*"
     ],
     "action": {
         "default_popup": "popup.html",
