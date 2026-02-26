@@ -500,19 +500,24 @@ nav>div:has(> a[href*="/profile"]):not(.sm\:hidden) {
     order: 5 !important;
 }
 
-/* Notifications - AFTER Profile */
-nav>a[href="/notifications"] {
+/* Notifications - AFTER Settings */
+#inleo-skin-settings-link {
     order: 6 !important;
+}
+
+/* Notifications - AFTER Settings */
+nav>a[href="/notifications"] {
+    order: 7 !important;
 }
 
 /* Mobile profile */
 nav>div.sm\:hidden {
-    order: 7 !important;
+    order: 8 !important;
 }
 
 /* Publish */
 nav>div:has(button):last-of-type {
-    order: 8 !important;
+    order: 9 !important;
 }
 
 /* =========================================================
@@ -536,9 +541,13 @@ a[aria-label="Threads Page"] {
     font-size: 0 !important;
     display: flex !important;
     align-items: center !important;
-    padding: 12px 16px !important;
+    padding: 12px 16px 12px 18px !important;
     background: transparent !important;
     border: none !important;
+    width: 278px !important;
+    min-width: 278px !important;
+    margin-left: 12px !important;
+    box-sizing: border-box !important;
 }
 
 a[aria-label="Threads Page"]::before {
@@ -896,10 +905,12 @@ nav a[href="/notifications"].item-active>div {
 #cyber-price-ticker {
     background: var(--panel-bg) !important;
     border: 1px solid rgba(0, 243, 255, 0.15) !important;
-    margin: 8px !important;
-    padding: 12px 16px !important;
+    margin: 8px 0 8px 13px !important;
+    padding: 12px 16px 12px 17px !important;
     position: relative !important;
     font-family: "Share Tech Mono", monospace !important;
+    width: 278px !important;
+    box-sizing: border-box !important;
 }
 
 #cyber-price-ticker::before {
@@ -1112,4 +1123,82 @@ nav div[class*="w-[calc"] a:hover {
     background: rgba(0, 243, 255, 0.08) !important;
     color: var(--primary) !important;
     border-left: 2px solid var(--primary) !important;
+}
+
+/* =========================================================
+   24. MUTE FEATURE STYLES
+   Styles for the injected [ MUTE ] button and hiding logic.
+   ========================================================= */
+
+/* The injected Mute button */
+button.inleo-mute-btn {
+    font-family: "Share Tech Mono", monospace !important;
+    font-size: 10px !important;
+    color: #ffffff !important;
+    background: var(--panel-bg) !important;
+    border: 1px solid var(--secondary) !important;
+    padding: 2px 6px !important;
+    margin-left: 8px !important;
+    cursor: pointer !important;
+    letter-spacing: 0.1em !important;
+    border-radius: 0 !important;
+    /* Keep it sharp and cyber */
+    transition: all 0.2s ease !important;
+    box-shadow: 0 0 5px rgba(255, 42, 0, 0.1) !important;
+}
+
+/* Hover state for the mute button */
+button.inleo-mute-btn:hover {
+    background: rgba(255, 42, 0, 0.1) !important;
+    color: var(--secondary) !important;
+    box-shadow: 0 0 10px rgba(255, 42, 0, 0.3) !important;
+}
+
+/* Hide posts that belong to muted users */
+.inleo-muted-post {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* =========================================================
+   25. WALLET PAGE OVERLAPS (Bug 10)
+   When the URL contains /wallet, the content script adds
+   the .inleo-wallet-page class to the body.
+   Hide the "More" option and the Market Data ticker.
+   ========================================================= */
+
+body.inleo-wallet-page #cyber-price-ticker {
+    display: none !important;
+}
+
+/* Hide 'More' options on Wallet page */
+body.inleo-wallet-page nav div:has(> button[title="More"]),
+body.inleo-wallet-page nav button[title="More"] {
+    display: none !important;
+}
+
+/* =========================================================
+   26. AVATAR OUTLINES (User vs Others)
+   The content script injects .avatar-self and .avatar-other
+   classes onto the profile <a> link tags.
+   ========================================================= */
+
+/* The user's own avatar gets a cyan/green outline */
+.avatar-self-target {
+    border-color: #35dce5 !important;
+    border-width: 1.5px !important;
+    border-style: solid !important;
+    outline: none !important;
+}
+
+/* All other users get a red outline */
+.avatar-other-target {
+    border-color: #fa2522 !important;
+    border-width: 1.5px !important;
+    border-style: solid !important;
+    outline: none !important;
 }

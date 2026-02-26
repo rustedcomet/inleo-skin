@@ -247,9 +247,33 @@ These rules MUST be followed in every new theme CSS file to prevent similar bugs
 
 ---
 
+## Phase 3: Feature Integration & Advanced Polishing
+
+### 3.1 Mute Extension Integration
+**Feature**: Brought the standalone `inleo-mute-extension` logic directly into the Cyberpunk theme extension, unifying functionality.
+- **Implementation**: The `content.js` file now actively observes the feed and injects a `[ MUTE ]` button adjacent to usernames.
+- **Persistence**: Relies on `chrome.storage.local` to store the array of muted users.
+- **Hiding Logic**: When a post matches a muted user, the outermost article container is located using `.closest('article')` or `.closest('.border-b')` depending on the view, and hidden using `display: none !important`.
+
+### 3.2 Wallet Page Navigation Collisions
+**Bug**: Clicking "Wallet" caused the entire left-column navigation to duplicate visually, and a "More" dropdown button appeared directly beneath the user's profile avatar.
+- **Root Cause**: The Wallet page dynamically changes its `<body>` class to `inleo-wallet-page` and aggressively injects its own distinct `<nav>` container specifically for Wallet contracts. Globally targeting `nav` in the CSS caused these rules to bleed into the Wallet nav.
+- **Fix**: Used body-specific descendant selectors: `body.inleo-wallet-page nav div:has(> button[title="More"])` to selectively hide the Wallet's auxiliary buttons without destroying the main navigation.
+
+### 3.3 Avatar Outline Targeting
+**Bug**: Attempting to color-code user avatars (Cyan for self, Red for others) by targeting `a[href="/profile/username"]` failed because avatars in the content feed are actually wrapped directly in `<span>` elements, not anchor tags.
+- **Root Cause**: Inleo's feed architecture natively assigns the user's exact username to the `id` attribute of the immediate `<span>` wrapping the `<img src="*avatar*">`.
+- **Fix**: Avoided `href` matching entirely. JavaScript now queries `img[src*="avatar"]`, traverses upwards, and maps the `id` attribute of the parent `<span>` directly to the `avatar-self-target` or `avatar-other-target` CSS classes.
+
+### 3.4 Pixel-Perfect Alignments (Nav vs Injected Content)
+**Bug**: The injected `INLEO // OS_0.4.2_GLITCH` box and the `Market Data` ticker appeared misaligned compared to the main Navigation items, even when their outer bounding boxes were strictly defined as `width: 278px`.
+- **Root Cause**: Discrepancies between inner padding and border boundaries vs. textual coordinates. DevTools evaluation revealed the inner text of the Navigation Items started at the `289.5px` X-coordinate, while the injected boxes fell short at `287.5px` and `288.5px`.
+- **Fix**: Utilized `box-sizing: border-box` explicitly alongside pixel-perfect padding calculations (`padding-left: 18px` for the Glitch box and `padding-left: 17px` for the ticker) to force their content to begin at exactly `289.5px`, mathematically synchronizing the visual left edge.
+
+---
+
 ## Future Phases
 
-- **Phase 3 Pipeline**: User-customizable CSS variables (custom accent colors) via the popup UI.
-- **Performance**: Monitor the performance impact of high-specificity CSS selectors on extremely long threads.
+- **Performance**: Monitor the performance impact of high-specificity CSS selectors and the `MutationObserver` on extremely long threads.
 - **Maintenance**: Regular updates to CSS selectors will be required if `inleo.io` fundamentally changes its DOM structure or Tailwind configuration.
 - **New Themes**: Use `cyberpunk-v2.css` as the reference template. Copy the entire nav section (sections 6–6d) as a starting point and modify only colors/fonts.
