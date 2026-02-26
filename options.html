@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>InLeo Skins - Muted Users</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    
+    body {
+      font-family: "Share Tech Mono", monospace;
+      padding: 16px;
+      width: 320px;
+      background-color: #0a0a12;
+      color: #ffffff;
+      margin: 0;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 16px;
+      color: #00f3ff;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+      padding-bottom: 8px;
+    }
+    .input-group {
+      display: flex;
+      margin-bottom: 16px;
+      margin-top: 16px;
+    }
+    input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 0;
+      background: rgba(0, 0, 0, 0.5);
+      color: #00f3ff;
+      font-family: inherit;
+    }
+    input:focus {
+      outline: none;
+      border-color: #00f3ff;
+      box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+    }
+    button {
+      padding: 8px 12px;
+      background-color: rgba(255, 42, 0, 0.1);
+      color: #ff2a00;
+      border: 1px solid #ff2a00;
+      border-radius: 0;
+      cursor: pointer;
+      font-family: inherit;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .input-group button {
+      border-left: none;
+    }
+    button:hover {
+      background-color: rgba(255, 42, 0, 0.3);
+      box-shadow: 0 0 10px rgba(255, 42, 0, 0.2);
+    }
+    #userList {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+    #userList li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .remove-btn {
+      background-color: transparent;
+      color: #555;
+      font-size: 14px;
+      padding: 4px;
+      border: none;
+    }
+    .remove-btn:hover {
+      background-color: transparent;
+      color: #ff2a00;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>Muted Users</h2>    #userList li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .remove-btn {
+      background-color: transparent;
+      color: #999;
+      font-size: 14px;
+      padding: 4px;
+    }
+    .remove-btn:hover {
+      color: #e44236;
+    }
+  </style>
+</head>
+<body>
+  <h2>Muted Users</h2>
+  <div class="input-group">
+    <input type="text" id="usernameInput" placeholder="Enter username (e.g. tgld.yield)" />
+    <button id="addBtn">Add</button>
+  </div>
+  <ul id="userList"></ul>
+  <script src="options.js"></script>
+</body>
+</html>
