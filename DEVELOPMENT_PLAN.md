@@ -386,10 +386,84 @@ div[role="tooltip"] .inleo-mute-wrapper {
 ### 3.9 Scrollbar Width Increase
 - The global scrollbar (`::-webkit-scrollbar`) was widened from `2px` to `6px` in section 13 of `cyberpunk-v2.css`. At 2px the scrollbar thumb was nearly impossible to click and drag. The 6px width provides a usable grab target while preserving the same color scheme (cyan thumb via `var(--primary)`, transparent track).
 
+### 3.10 Performance Fix — Scroll Jank & Progressive Slowdown
+
+**Bug**: On widescreen monitors (especially in portrait orientation), the page would load with an oversized scrollbar and become progressively more sluggish as the user scrolled. Scrolling up and down became severely janky to the point of unusability. Reloading the page or restarting the browser temporarily restored normal performance until enough content accumulated again.
+
+#### Root Cause — MutationObserver Feedback Loop
+
+The primary cause was a cascading feedback loop between the `MutationObserver` and `processFeed()`:
+
+1. User scrolls → infinite scroll loads new posts → DOM nodes added → `MutationObserver` fires
+2. Observer calls `processFeed()` **directly with no debounce**
+3. `processFeed()` modifies the DOM (adds/removes CSS classes, injects mute buttons)
+4. These DOM changes re-trigger the `MutationObserver`
+5. Observer calls `processFeed()` again → loop repeats
+
+This loop amplified exponentially as more content loaded. On a portrait widescreen monitor with a taller viewport, more posts were visible simultaneously, meaning more DOM mutations per scroll event and a worse feedback cascade.
+
+#### Contributing Factors
+
+1. **`getComputedStyle()` in hot path**: The `isInsidePopupOrCard()` function called `getComputedStyle(ancestor).position` for every profile link and mute button on every `processFeed()` call. `getComputedStyle()` forces a synchronous layout reflow — hundreds of these per second destroyed frame rates.
+
+2. **1-second poller calling `processFeed()` independently**: The DOM maintenance `setInterval` (§DOM MAINTENANCE POLLER) ran every 1 second, each time calling `chrome.storage.sync.get()` (async IPC), `updateCurrentUser()` (DOM query), `processFeed()` (full DOM scan), and `injectSettingsLink()` (DOM query). This stacked on top of the observer loop.
+
+3. **`processFeed()` cleared and re-applied all state on every call**: Every invocation removed `.inleo-muted-post` from ALL elements then re-scanned and re-applied, causing unnecessary layout thrashing.
+
+4. **CSS: `background-attachment: fixed`**: The body background used `background-attachment: fixed`, which forces the browser to repaint the entire background on every scroll frame instead of scrolling it with the content.
+
+5. **CSS: `backdrop-filter: blur(12px)` on sticky headers**: `backdrop-filter` is GPU-intensive during scrolling, especially on sticky elements that must be composited on every frame.
+
+6. **CSS: `body::before` scanline overlay without GPU promotion**: The full-viewport fixed overlay lacked `will-change` or `transform: translateZ(0)`, forcing the browser to composite it on the main thread during scroll.
+
+#### Technical Fixes
+
+**content.js changes:**
+
+1. **Debounce + re-entrancy guard** (`scheduleProcessFeed()`):
+   - New function coalesces multiple rapid triggers into a single `processFeed()` call after a configurable delay (150–300ms).
+   - A `_isProcessingFeed` boolean flag prevents the `MutationObserver` from re-triggering when `processFeed()` itself modifies the DOM, breaking the feedback loop.
+
+2. **MutationObserver hardened**:
+   - Returns immediately if `_isProcessingFeed` is true (our own mutations).
+   - Ignores text nodes (`nodeType !== 1`) and our own `.inleo-mute-wrapper` injections.
+   - Uses `scheduleProcessFeed(150)` instead of calling `processFeed()` directly.
+
+3. **`getComputedStyle()` removed from `isInsidePopupOrCard()`**:
+   - Replaced with `getAttribute('style')` string check for inline `position: fixed/absolute`.
+   - Eliminates forced synchronous layout reflows from the hot path entirely.
+
+4. **Poller interval: 1s → 3s**:
+   - The DOM maintenance poller now runs every 3 seconds instead of every 1 second.
+   - 3 seconds is sufficient for maintaining SPA state (data attribute, ticker, settings link) without hammering the DOM.
+
+5. **Smarter `processFeed()` unmuting logic**:
+   - No longer strips `.inleo-muted-post` from ALL elements and re-applies. Instead, only removes the class from posts whose user is no longer in the muted list.
+   - Reduces unnecessary DOM writes that triggered the observer.
+
+6. **Scoped profile link queries**:
+   - `processFeed()` now queries `main#threads` instead of `document.body` for profile links, reducing the number of elements scanned.
+
+**cyberpunk-v2.css changes:**
+
+1. **`background-attachment: fixed` → `scroll`** (Section 1 — Body):
+   - Eliminates full-page repaints on every scroll frame. The radial gradient and scanline patterns are subtle enough that `scroll` behavior is visually indistinguishable from `fixed`.
+
+2. **`body::before` scanline overlay promoted to GPU layer** (Section 2):
+   - Added `will-change: transform` and `transform: translateZ(0)` to force the fixed overlay onto its own compositing layer, preventing main-thread paint blocking during scroll.
+
+3. **`backdrop-filter: blur(12px)` removed from sticky headers** (Sections 5, 16):
+   - Replaced with `rgba(5, 5, 8, 0.97)` near-opaque solid background. At 97% opacity the visual result is virtually identical to a blur effect, but without the GPU-intensive per-frame compositing cost.
+
+#### Performance Rules Established
+
+- **Rule 13**: Never call `getComputedStyle()` inside a loop that runs on every DOM mutation — use attribute/class checks instead.
+- **Rule 14**: Always debounce `MutationObserver` callbacks and guard against re-entrancy when the callback itself modifies the DOM.
+- **Rule 15**: Avoid `background-attachment: fixed` — use `scroll` instead. Avoid `backdrop-filter: blur()` on sticky/scrolling elements — use near-opaque solid backgrounds.
+
 ---
 
 ## Future Phases
 
-- **Performance**: Monitor the performance impact of high-specificity CSS selectors and the `MutationObserver` on extremely long threads.
 - **Maintenance**: Regular updates to CSS selectors will be required if `inleo.io` fundamentally changes its DOM structure or Tailwind configuration.
 - **New Themes**: Use `cyberpunk-v2.css` as the reference template. Copy the entire nav section (sections 6–6d) as a starting point and modify only colors/fonts.

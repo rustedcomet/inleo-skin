@@ -220,6 +220,8 @@ function updateTickerRow(id, coinData) {
    needed). This poller only maintains DOM-injected elements
    (ticker, settings link, mute buttons) and the data attribute
    that SPA navigation can strip.
+   PERF: Runs every 3s (not 1s). Uses scheduleProcessFeed()
+   instead of direct processFeed() to avoid stacking work.
    ========================================================= */
 setInterval(() => {
     chrome.storage.sync.get(['activeTheme'], (result) => {
@@ -260,7 +262,7 @@ setInterval(() => {
 
         // --- Feature maintenance ---
         updateCurrentUser();
-        processFeed();
+        scheduleProcessFeed(300);
         injectSettingsLink();
 
         // Handle Wallet Page Layout Overlaps
@@ -271,7 +273,7 @@ setInterval(() => {
         }
 
     });
-}, 1000);
+}, 3000);
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -350,6 +352,25 @@ function injectSettingsLink() {
 let mutedUsers = [];
 let currentUser = null;
 
+/* =========================================================
+   PERFORMANCE: Debounce helper & processing guard
+   Prevents the MutationObserver → processFeed → DOM change
+   → MutationObserver feedback loop that causes scroll jank.
+   ========================================================= */
+let _processFeedTimer = null;
+let _isProcessingFeed = false;
+
+function scheduleProcessFeed(delay = 200) {
+    if (_processFeedTimer) return; // already scheduled
+    _processFeedTimer = setTimeout(() => {
+        _processFeedTimer = null;
+        if (!_isProcessingFeed) {
+            _isProcessingFeed = true;
+            try { processFeed(); } finally { _isProcessingFeed = false; }
+        }
+    }, delay);
+}
+
 // Function to find the logged-in username securely from the left menu
 function updateCurrentUser() {
     const profileLinks = Array.from(document.querySelectorAll('nav a[href^="/profile/"]'));
@@ -365,41 +386,57 @@ function updateCurrentUser() {
 // Load the initial list of muted users
 chrome.storage.local.get({ mutedUsers: [] }, (result) => {
     mutedUsers = result.mutedUsers || [];
-    processFeed();
+    scheduleProcessFeed(100);
 });
 
 // Listen for storage changes to apply updates live (e.g., from options page if added later)
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.mutedUsers) {
         mutedUsers = changes.mutedUsers.newValue || [];
-        processFeed();
+        scheduleProcessFeed(100);
     }
 });
 
 function isInsidePopupOrCard(el) {
     // Walk up ancestors checking for popup/hover card containers
+    // PERF: Avoid getComputedStyle() — use class/attribute checks only
     let ancestor = el;
     for (let i = 0; i < 15; i++) {
         ancestor = ancestor.parentElement;
         if (!ancestor || ancestor === document.body) break;
         // Radix tooltip/popover wrappers
-        if (ancestor.getAttribute('data-radix-popper-content-wrapper') !== null) return true;
-        if (ancestor.getAttribute('role') === 'tooltip' || ancestor.getAttribute('role') === 'dialog') return true;
+        if (ancestor.hasAttribute('data-radix-popper-content-wrapper')) return true;
+        const role = ancestor.getAttribute('role');
+        if (role === 'tooltip' || role === 'dialog') return true;
         if (ancestor.id && ancestor.id.startsWith('radix-')) return true;
-        // Inleo hover card: has shadow class + text-xs + rounded-lg
+        // Inleo hover card: has shadow class + text-xs
         const cls = ancestor.className || '';
         if (cls.includes('shadow-[') && cls.includes('text-xs')) return true;
-        // Generic: element with position:absolute/fixed that isn't a post wrapper
-        const pos = getComputedStyle(ancestor).position;
-        if ((pos === 'fixed') && !ancestor.closest('nav') && !ancestor.closest('main#threads')) return true;
+        // Check for fixed positioning via inline style (avoids getComputedStyle)
+        const style = ancestor.getAttribute('style') || '';
+        if (style.includes('position') && (style.includes('fixed') || style.includes('absolute'))) {
+            if (!ancestor.closest('nav') && !ancestor.closest('main#threads')) return true;
+        }
     }
     return false;
 }
 
 function processFeed() {
-    // Clear all existing muted classes to recalculate
+    // PERF: Only remove muted class from posts whose user is no longer muted.
+    // Skip the "clear all + re-apply" pattern that caused unnecessary reflows.
     document.querySelectorAll('.inleo-muted-post').forEach(el => {
-        el.classList.remove('inleo-muted-post');
+        // Check if this element still has a muted user — if not, unhide it
+        const link = el.querySelector('a[href^="/profile/"]');
+        if (link) {
+            const href = link.getAttribute('href');
+            const parts = href.split('/profile/');
+            const user = parts.length > 1 ? parts[1].toLowerCase().trim().split('/')[0].split('?')[0] : '';
+            if (!mutedUsers.includes(user)) {
+                el.classList.remove('inleo-muted-post');
+            }
+        } else {
+            el.classList.remove('inleo-muted-post');
+        }
     });
 
     // Remove orphaned mute buttons (naked buttons without a wrapper, or inside popups)
@@ -411,7 +448,9 @@ function processFeed() {
         }
     });
 
-    const profileLinks = document.querySelectorAll('a[href^="/profile/"]');
+    // PERF: Scope the query to main feed area when possible
+    const feedArea = document.querySelector('main#threads') || document.body;
+    const profileLinks = feedArea.querySelectorAll('a[href^="/profile/"]');
 
     profileLinks.forEach(link => {
         // Skip links inside popups, tooltips, or hover cards
@@ -529,15 +568,24 @@ function muteUser(username) {
 
 // Observe DOM for infinite scrolling/dynamic posts to inject mute buttons
 const feedObserver = new MutationObserver((mutations) => {
+    // Skip mutations caused by our own processFeed() DOM changes
+    if (_isProcessingFeed) return;
+
     let shouldProcess = false;
     for (let mutation of mutations) {
         if (mutation.addedNodes.length > 0) {
-            shouldProcess = true;
-            break;
+            // Only care about element nodes, not text nodes or our own injections
+            for (let node of mutation.addedNodes) {
+                if (node.nodeType === 1 && !node.classList?.contains('inleo-mute-wrapper')) {
+                    shouldProcess = true;
+                    break;
+                }
+            }
+            if (shouldProcess) break;
         }
     }
     if (shouldProcess) {
-        processFeed();
+        scheduleProcessFeed(150);
     }
 });
 
