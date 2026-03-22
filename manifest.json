@@ -9,7 +9,10 @@
     "host_permissions": [
         "*://inleo.io/*",
         "*://*.inleo.io/*",
-        "*://api.coingecko.com/*"
+        "*://api.coingecko.com/*",
+        "*://api.deathwing.me/*",
+        "*://api.hive.blog/*",
+        "*://api.hive-engine.com/*"
     ],
     "action": {
         "default_popup": "popup.html",
@@ -25,7 +28,8 @@
                 "*://*.inleo.io/*"
             ],
             "js": [
-                "content.js"
+                "content.js",
+                "wallet.js"
             ],
             "run_at": "document_start"
         }
