@@ -463,7 +463,300 @@ This loop amplified exponentially as more content loaded. On a portrait widescre
 
 ---
 
+## Phase 4: Custom Wallet Page (Hive Blockchain Data)
+
+### 4.1 Overview
+
+InLeo's built-in wallet page was broken — it crashed with JavaScript errors and displayed an unusable error overlay. This phase replaces it entirely with a custom wallet that fetches live data from the Hive blockchain and renders it inline within InLeo's existing layout.
+
+**Key Principle**: The wallet swaps only the center content area of InLeo's DOM. Both sidebars (left navigation + market data, right trending tags) remain completely untouched. The result is indistinguishable from a native InLeo page — same scrolling, same responsive behavior, same navigation.
+
+### 4.2 Architecture — DOM Swap (Not Overlay)
+
+After iterating through several approaches (CSS overlay, full-page overlay with cloned sidebars, standalone extension page), the final architecture uses **direct DOM substitution**:
+
+1. **`wallet.js`** runs as a content script alongside `content.js`.
+2. When the user clicks the Wallet nav link, a capture-phase click listener intercepts the event before InLeo's Next.js router can handle it.
+3. The center `<main>` element (InLeo's feed/content area) is hidden via `display: none`.
+4. A new `<div>` with the wallet UI is inserted in its place, inheriting the original element's CSS classes for identical flex/width behavior.
+5. When the user clicks any other nav link, the wallet `<div>` is removed and the original `<main>` is restored.
+
+**Why not an overlay?** Fixed overlays created problems: double scrollbars, feed content bleeding through on resize, sidebar measurement fragility, and broken responsive behavior. The DOM swap approach inherits InLeo's layout system naturally.
+
+**Why not a standalone extension page?** Opening `chrome-extension://` URLs in a new tab breaks the seamless experience — the user leaves InLeo's domain, loses the sidebars, and it doesn't feel native.
+
+### 4.3 Click Interception Strategy
+
+```javascript
+document.addEventListener('click', (e) => {
+    // Walk up to 10 ancestors looking for an <a> tag
+    let target = e.target;
+    for (let i = 0; i < 10; i++) {
+        if (target.tagName === 'A') {
+            const href = target.getAttribute('href') || '';
+            if (href.includes('/wallet')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                openWallet();
+                return;
+            }
+            // Close wallet when clicking any other link
+            if (_walletActive) {
+                closeWallet();
+                return; // let InLeo handle navigation
+            }
+        }
+        target = target.parentElement;
+    }
+}, true); // capture phase — fires before InLeo's router
+```
+
+Using **capture phase** (`true`) ensures the handler runs before InLeo's own click handlers. `stopImmediatePropagation()` prevents the Next.js router from processing the wallet link click.
+
+### 4.4 Hive Blockchain API Integration
+
+#### Data Sources
+- **Primary node**: `https://api.deathwing.me` (configurable in extension options)
+- **Fallback node**: `https://api.hive.blog`
+- API calls automatically fall through to the fallback if the primary fails.
+
+#### RPC Methods Used
+| Method | Purpose |
+|--------|---------|
+| `condenser_api.get_accounts` | Account balances, vesting shares, delegations |
+| `condenser_api.get_dynamic_global_properties` | Total vesting fund, vesting shares, inflation rate, HBD interest |
+| `condenser_api.get_vesting_delegations` | Outgoing delegation list (for Details modal) |
+
+#### Vesting Shares → Hive Power Conversion
+```
+ownHP = (account.vesting_shares / total_vesting_shares) * total_vesting_fund_hive
+delegatedHP = (account.delegated_vesting_shares / tvs) * tvf
+receivedHP = (account.received_vesting_shares / tvs) * tvf
+effectiveHP = ownHP - delegatedHP + receivedHP
+```
+
+#### HP APR Calculation (Range)
+The wallet displays HP APR as a range (e.g., `~4.31 - 13.66%`) matching PeakD's format:
+```
+inflationRate = max(978 - floor(headBlock / 250000), 95) / 10000
+newHivePerYear = virtual_supply * inflationRate
+stakingAPR = (newHivePerYear * 0.15) / total_vesting_fund * 100    // passive staking
+curationAPR = (newHivePerYear * 0.65 * 0.5) / total_vesting_fund * 100  // active curation
+```
+- **Min** (stakingAPR): Passive HP growth from holding staked HIVE.
+- **Max** (stakingAPR + curationAPR): Achievable by voting effectively on posts.
+
+### 4.5 Hive Engine Token Integration
+
+#### Token Balances
+Fetched from `https://api.hive-engine.com/rpc/contracts` using the `find` method on `tokens.balances` table.
+
+**Tracked tokens**: LEO, SURGE, LSTR, EDSI, POSH, SWAP.HIVE
+
+#### Token USD Pricing
+Market prices are fetched in parallel from Hive Engine's `market.metrics` table, which provides `lastPrice` in HIVE for each token. USD conversion uses the cached HIVE/USD price from the extension's existing CoinGecko market data.
+
+```
+tokenUSD = tokenBalance * lastPriceInHive * hiveUsdPrice
+```
+
+Each token card displays: token balance, staked amount (if any), and USD value.
+
+### 4.6 Estimated Account Values
+
+Two estimate sections are displayed:
+
+1. **Estimated Account Value** (after HBD section): HIVE-only value
+   ```
+   (liquid HIVE + savings HIVE + own HP) * HIVE_USD + liquid HBD + savings HBD
+   ```
+
+2. **Estimated Total Account Value** (after Hive Engine section): Everything combined
+   ```
+   hiveAccountValue + sum(each HE token balance * priceInHive * hiveUSD)
+   ```
+
+### 4.7 Delegation Details Modal
+
+Clicking "DETAILS" on the Delegated HIVE row opens a modal showing:
+- Summary: Own HP, Delegated Out, Received, Effective
+- Table of all outgoing delegations with delegatee usernames and HP amounts
+
+The modal uses `position: fixed` with `backdrop-filter: blur(6px)` and closes on backdrop click or X button.
+
+### 4.8 Caching
+
+Wallet data is cached in `chrome.storage.local` with a 5-minute TTL to avoid redundant API calls. The refresh button forces a cache bypass.
+
+```
+chrome.storage.local:
+  inleo_wallet_data_cache: {
+    u: "username",
+    d: { ...walletData },
+    t: timestamp
+  }
+```
+
+### 4.9 Styles via `adoptedStyleSheets`
+
+All wallet CSS is injected via `document.adoptedStyleSheets` (same strategy as the theme system), making it immune to InLeo's SPA navigation wiping the `<head>`. The wallet container copies the original center `<main>` element's Tailwind classes to inherit correct sizing.
+
+### 4.10 Files Modified
+
+| File | Change |
+|------|--------|
+| `wallet.js` | New content script — wallet UI, Hive API, HE tokens, click interception |
+| `manifest.json` | Added `wallet.js` to content scripts; added host permissions for `api.deathwing.me`, `api.hive.blog`, `api.hive-engine.com` |
+| `content.js` | Stores `currentUser` to `chrome.storage.local` for wallet username detection |
+| `options.html` | Added "Wallet Settings" section with Hive API node selector |
+| `options.js` | Added Hive API node preference load/save |
+
+### 4.11 Direct URL Navigation
+
+If the user navigates directly to `/username/wallet`, the wallet auto-opens once the DOM is ready. A retry loop waits for the center `<main>` element to exist before activating.
+
+---
+
+## Phase 5: Hivemoji Integration (On-Chain Custom Emoji Rendering)
+
+### 5.1 Overview
+
+Integrate the rendering engine from [Hivemoji](https://github.com/mrtats/Hivemoji) to display custom on-chain emojis within Inleo posts. Hivemoji is a decentralized emoji protocol for the Hive blockchain — users create custom emojis stored as base64 `custom_json` operations, and frontends render `:emojiname:` tokens as inline `<img>` tags. Currently Hivemoji targets hive.blog, peakd.com, and ecency.com. Inleo is **not** supported by the standalone extension, making this a unique feature for Inleo Skin users.
+
+**Scope**: Render-only. Emoji creation/upload remains the responsibility of the standalone Hivemoji extension or its web UI. This integration focuses exclusively on resolving and displaying emojis within the Inleo feed.
+
+### 5.2 Architecture — Render Engine Embedding
+
+The integration follows **Option A (Embed Rendering Engine)** — porting only the emoji resolver and renderer into `content.js`, avoiding any dependency on Hive Keychain or upload logic.
+
+#### Components to Port from Hivemoji:
+1. **Emoji Resolver** — Queries `condenser_api.get_account_history` via Hive RPC node to fetch `custom_json` operations containing emoji definitions (both v1 single-op and v2 chunked uploads).
+2. **Cache Layer** — In-memory + `chrome.storage.local` persistent cache to avoid redundant RPC calls. Keyed by `@username:emojiname`.
+3. **Token Scanner** — Regex-based scanner that finds `:emojiname:` patterns in post text nodes.
+4. **Image Renderer** — Replaces matched tokens with inline `<img>` tags using the resolved base64 data URI.
+
+#### Components NOT Ported:
+- Upload UI / emoji creation form
+- Hive Keychain signing integration
+- Popup interface for managing personal emojis
+- Any write operations to the blockchain
+
+### 5.3 Integration with Existing Pipeline
+
+The emoji renderer hooks into the existing `processFeed()` MutationObserver pipeline as a new processing step:
+
+```
+MutationObserver detects new DOM nodes
+        ↓
+  processFeed()
+        ↓
+  ┌─ Step 1: Hide muted user posts
+  ├─ Step 2: Apply avatar outlines (self vs. other)
+  ├─ Step 3: Inject [ mute ] buttons
+  └─ Step 4 (NEW): Scan post text nodes for :emoji: tokens → resolve → render <img>
+```
+
+**DOM Targeting**: Post body content on Inleo lives in `<p>` tags and rich-text containers within the feed. The scanner must:
+- Target only post body text nodes (not usernames, timestamps, or UI labels).
+- Skip already-processed nodes (mark with `data-hivemoji-processed` attribute).
+- Operate on `TextNode` splits to preserve surrounding text and inline formatting.
+
+### 5.4 Technical Considerations
+
+#### Hive RPC Calls & Performance
+- Inleo's infinite scroll can load dozens of posts per session. Each unique `@user:emoji` pair requires an RPC lookup on first encounter.
+- **Mitigation**: Aggressive two-tier caching:
+  - **L1 — In-memory Map**: Instant lookup for emojis already resolved in the current session.
+  - **L2 — `chrome.storage.local`**: Persistent across sessions with a configurable TTL (e.g., 24 hours). Prevents redundant RPC calls on page reload.
+- **Batching**: Collect all unique `@user:emoji` pairs found in a single `processFeed()` cycle, deduplicate, check cache, and fire RPC requests only for cache misses.
+- **RPC Endpoint**: Use a public Hive API node (e.g., `https://api.hive.blog`). Consider making this configurable in the popup/options for users running their own nodes.
+
+#### Hivemoji Protocol Versions
+- **v1**: Single `custom_json` operation containing the full base64 emoji data.
+- **v2**: Chunked upload — emoji data split across multiple `custom_json` operations (supports ~100KB total). The resolver must detect the `hivemoji_v2_chunk` operation ID, collect all chunks in order, and concatenate before rendering.
+- Both versions must be handled by the resolver.
+
+#### SPA Resilience
+- The emoji renderer inherits the same SPA resilience as the existing mute/avatar features — it runs inside `processFeed()` which is triggered by `MutationObserver` and the 3-second DOM maintenance poller.
+- No additional observers or pollers are needed.
+
+### 5.5 User-Facing Feature Toggle
+
+- Add a **"Hivemoji"** checkbox or toggle to `popup.html` alongside the theme selector.
+- State stored in `chrome.storage.sync['hivemojiEnabled']` (cloud-synced).
+- When disabled, the emoji scanning step is skipped entirely in `processFeed()` — zero performance overhead.
+- When enabled, a small emoji indicator (e.g., 🐝) could appear in the price ticker or sidebar to confirm the feature is active.
+
+### 5.6 CSS Styling for Rendered Emojis
+
+Add emoji image styling to `cyberpunk-v2.css` (and future themes):
+
+```css
+/* Hivemoji inline emoji images */
+img.hivemoji {
+    display: inline-block !important;
+    height: 1.5em !important;
+    width: auto !important;
+    vertical-align: middle !important;
+    margin: 0 2px !important;
+    /* Prevent theme background overrides from affecting emoji transparency */
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+```
+
+### 5.7 Storage Schema Addition
+
+```
+chrome.storage.sync:
+  hivemojiEnabled: boolean (default: false)
+
+chrome.storage.local:
+  hivemojiCache: {
+    "@user:emojiname": {
+      data: "data:image/png;base64,...",
+      version: 1 | 2,
+      cachedAt: timestamp
+    },
+    ...
+  }
+```
+
+### 5.8 Licensing & Attribution
+- Hivemoji is authored by [@mrtats](https://github.com/mrtats). Confirm license compatibility before embedding resolver code.
+- Add attribution in `README.md` and as a code comment in any ported functions.
+- If license is restrictive, consider reimplementing the resolver from the [Hivemoji protocol spec](https://github.com/mrtats/Hivemoji) rather than copying source directly.
+
+### 5.9 Open Questions (To Resolve Before Implementation)
+1. **Fallback rendering**: If an emoji fails to resolve (deleted, invalid, RPC timeout), should the raw `:emojiname:` token remain visible, or display a placeholder icon?
+2. **Emoji size variants**: Should users be able to control emoji display size (small inline vs. large reaction)?
+3. **Cache invalidation**: How to handle emoji updates — if a user re-uploads an emoji with the same name, the cache will serve stale data. TTL-based expiry vs. manual cache clear button in options?
+4. **Content Security Policy**: Verify that Inleo's CSP headers allow inline base64 `data:image` sources in dynamically created `<img>` tags. If blocked, may need to convert to blob URLs.
+
+### 5.10 Editor Toolbar Cleanup (Done)
+**Feature**: Removed three rarely-used buttons from InLeo's text editor toolbar across all pages: **Heading** ("H"), **Italic** ("I"), and **Upload Short** (video icon).
+
+#### Implementation
+A new **always-on CSS stylesheet** (`editorTweaksSheet`) is injected at the top of `content.js` via `document.adoptedStyleSheets`, completely independent of the theme system. This ensures the buttons are hidden whether or not a theme is active.
+
+```css
+button[aria-label="Heading"] { display: none !important; }
+button[aria-label="Italic"] { display: none !important; }
+button[aria-label="Upload Short"] { display: none !important; }
+```
+
+#### Why CSS Instead of JS DOM Removal?
+InLeo uses a Slate.js-based editor powered by React. The toolbar re-renders dynamically — removing DOM nodes via JavaScript would be reversed on the next React reconciliation cycle. CSS `display: none` persists through re-renders with zero performance cost.
+
+#### Why a Separate Adopted Stylesheet?
+The existing theme sheet (`currentThemeSheet`) is removed when the user disables their theme (`theme === 'none'`). The editor tweaks sheet is a distinct `CSSStyleSheet` object, so the removal logic (`filter(s => s !== currentThemeSheet)`) does not affect it. The buttons stay hidden at all times.
+
+---
+
 ## Future Phases
 
+- **Performance**: Monitor the performance impact of high-specificity CSS selectors and the `MutationObserver` on extremely long threads.
 - **Maintenance**: Regular updates to CSS selectors will be required if `inleo.io` fundamentally changes its DOM structure or Tailwind configuration.
 - **New Themes**: Use `cyberpunk-v2.css` as the reference template. Copy the entire nav section (sections 6–6d) as a starting point and modify only colors/fonts.
