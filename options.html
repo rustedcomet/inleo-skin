@@ -2,10 +2,10 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>InLeo Skins - Muted Users</title>
+  <title>InLeo Skins - Settings</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-    
+
     body {
       font-family: "Share Tech Mono", monospace;
       padding: 16px;
@@ -23,12 +23,15 @@
       border-bottom: 1px solid rgba(0, 243, 255, 0.2);
       padding-bottom: 8px;
     }
+    h2:not(:first-of-type) {
+      margin-top: 24px;
+    }
     .input-group {
       display: flex;
       margin-bottom: 16px;
       margin-top: 16px;
     }
-    input {
+    input, select {
       flex: 1;
       padding: 8px;
       border: 1px solid rgba(0, 243, 255, 0.3);
@@ -36,8 +39,9 @@
       background: rgba(0, 0, 0, 0.5);
       color: #00f3ff;
       font-family: inherit;
+      font-size: 12px;
     }
-    input:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: #00f3ff;
       box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
@@ -85,25 +89,25 @@
       color: #ff2a00;
       box-shadow: none;
     }
-  </style>
-</head>
-<body>
-  <h2>Muted Users</h2>    #userList li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px;
-      border-bottom: 1px solid #eee;
+    .setting-row {
+      margin: 12px 0;
     }
-    .remove-btn {
-      background-color: transparent;
-      color: #999;
-      font-size: 14px;
-      padding: 4px;
+    .setting-label {
+      display: block;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
     }
-    .remove-btn:hover {
-      color: #e44236;
+    .save-indicator {
+      font-size: 11px;
+      color: #2ecc71;
+      margin-left: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
+    .save-indicator.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -113,6 +117,19 @@
     <button id="addBtn">Add</button>
   </div>
   <ul id="userList"></ul>
+
+  <h2>Wallet Settings</h2>
+  <div class="setting-row">
+    <label class="setting-label">Hive API Node</label>
+    <div class="input-group">
+      <select id="hiveNodeSelect">
+        <option value="https://api.deathwing.me">api.deathwing.me (default)</option>
+        <option value="https://api.hive.blog">api.hive.blog (official)</option>
+      </select>
+    </div>
+    <span class="save-indicator" id="node-saved">Saved</span>
+  </div>
+
   <script src="options.js"></script>
 </body>
 </html>

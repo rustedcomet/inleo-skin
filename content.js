@@ -1,6 +1,24 @@
 let currentThemeSheet = null;
 let currentThemeName = null;
 
+/* =========================================================
+   EDITOR TOOLBAR TWEAKS — Always-on stylesheet
+   Hides unwanted toolbar buttons (Heading, Upload Short)
+   from every text editor instance across the site.
+   Uses a separate adoptedStyleSheet so it works regardless
+   of whether a theme is active.
+   ========================================================= */
+const editorTweaksSheet = new CSSStyleSheet();
+editorTweaksSheet.replaceSync(`
+    /* Hide the Heading ("H") button */
+    button[aria-label="Heading"] { display: none !important; }
+    /* Hide the Italic ("I") button */
+    button[aria-label="Italic"] { display: none !important; }
+    /* Hide the Upload Short (video) button */
+    button[aria-label="Upload Short"] { display: none !important; }
+`);
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, editorTweaksSheet];
+
 // Initial load
 chrome.storage.sync.get(['activeTheme'], (result) => {
     if (result.activeTheme) {
@@ -265,12 +283,6 @@ setInterval(() => {
         scheduleProcessFeed(300);
         injectSettingsLink();
 
-        // Handle Wallet Page Layout Overlaps
-        if (window.location.pathname.includes('/wallet')) {
-            document.body.classList.add('inleo-wallet-page');
-        } else {
-            document.body.classList.remove('inleo-wallet-page');
-        }
 
     });
 }, 3000);
@@ -378,7 +390,12 @@ function updateCurrentUser() {
     if (sidebarProfileLink) {
         const hrefParts = sidebarProfileLink.getAttribute('href').split('/profile/');
         if (hrefParts.length > 1) {
-            currentUser = hrefParts[1].toLowerCase().trim().split('/')[0].split('?')[0];
+            const detected = hrefParts[1].toLowerCase().trim().split('/')[0].split('?')[0];
+            if (detected && detected !== currentUser) {
+                currentUser = detected;
+                // Persist for the standalone wallet page to read
+                chrome.storage.local.set({ inleo_current_user: currentUser });
+            }
         }
     }
 }

@@ -2,8 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const usernameInput = document.getElementById('usernameInput');
     const addBtn = document.getElementById('addBtn');
     const userList = document.getElementById('userList');
+    const hiveNodeSelect = document.getElementById('hiveNodeSelect');
+    const nodeSavedIndicator = document.getElementById('node-saved');
 
-    // Load blocked users
+    // ---- Muted Users ----
+
     function loadUsers() {
         chrome.storage.local.get({ mutedUsers: [] }, (result) => {
             userList.innerHTML = '';
@@ -11,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const li = document.createElement('li');
                 li.textContent = user;
                 const removeBtn = document.createElement('button');
-                removeBtn.innerHTML = '&#10005;'; // X mark
+                removeBtn.innerHTML = '&#10005;';
                 removeBtn.className = 'remove-btn';
                 removeBtn.onclick = () => removeUser(user);
                 li.appendChild(removeBtn);
@@ -20,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Add a user
     function addUser() {
         const user = usernameInput.value.trim().toLowerCase();
         if (!user) return;
@@ -37,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Remove a user
     function removeUser(user) {
         chrome.storage.local.get({ mutedUsers: [] }, (result) => {
             let users = result.mutedUsers.filter(u => u !== user);
@@ -53,4 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     loadUsers();
+
+    // ---- Wallet: Hive API Node ----
+
+    // Load saved node preference
+    chrome.storage.sync.get({ hiveApiNode: 'https://api.deathwing.me' }, (result) => {
+        hiveNodeSelect.value = result.hiveApiNode;
+    });
+
+    // Save on change
+    hiveNodeSelect.addEventListener('change', () => {
+        chrome.storage.sync.set({ hiveApiNode: hiveNodeSelect.value }, () => {
+            // Flash "Saved" indicator
+            nodeSavedIndicator.classList.add('show');
+            setTimeout(() => nodeSavedIndicator.classList.remove('show'), 1500);
+        });
+    });
 });
