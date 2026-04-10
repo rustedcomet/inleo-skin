@@ -506,7 +506,7 @@ nav>div:has(> a[href*="/profile"]):not(.sm\:hidden) {
     order: 5 !important;
 }
 
-/* Notifications - AFTER Settings */
+/* Settings */
 #inleo-skin-settings-link {
     order: 6 !important;
 }
@@ -912,7 +912,7 @@ nav a[href="/notifications"].item-active>div {
 #cyber-price-ticker {
     background: var(--panel-bg) !important;
     border: 1px solid rgba(0, 243, 255, 0.15) !important;
-    margin: 8px 0 !important;
+    margin: 0 0 8px !important;
     padding: 12px 16px !important;
     position: relative !important;
     font-family: "Share Tech Mono", monospace !important;
@@ -1036,7 +1036,7 @@ div.relative.border-t:has(> div.flex.flex-row.items-center.gap-2) {
    ========================================================= */
 
 /* Filter row wrapper — span full width, remove side padding */
-div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 {
+body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 {
     padding-left: 0 !important;
     padding-right: 0 !important;
     gap: 8px !important;
@@ -1046,15 +1046,15 @@ div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 {
 }
 
 /* Make ONLY the filter group transparent wrappers so their buttons become direct children */
-div.tbl\:flex.flex-row.items-center.-left-3:has(> button),
-div.flex.flex-row.items-center.-left-3:has(> button) {
+body.inleo-articles-page div.tbl\:flex.flex-row.items-center.-left-3:has(> button),
+body.inleo-articles-page div.flex.flex-row.items-center.-left-3:has(> button) {
     display: contents !important;
 }
 
 /* Make the INLEO wrapper itself the flexible grid item so it retains its relative positioning context for the dropdown */
-div.relative.flex.ml-auto:has(> button),
-div.relative.flex[class*="ml-auto"]:has(> button),
-div.relative.flex.tbl\:ml-5:has(> button) {
+body.inleo-articles-page div.relative.flex.ml-auto:has(> button),
+body.inleo-articles-page div.relative.flex[class*="ml-auto"]:has(> button),
+body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
     display: flex !important;
     flex: 1 1 0 !important;
     margin-left: 0 !important;
@@ -1067,16 +1067,16 @@ span.w-\[1px\].h-5.bg-pri-d\/\[\.25\].dark\:bg-pri\/\[\.25\].flex {
 }
 
 /* Force filter buttons AND the INLEO wrapper to stretch and share space symmetrically */
-div.tbl\:flex.flex-row.items-center.-left-3>button,
-div.flex.flex-row.items-center.-left-3>button,
-div.relative.flex.ml-auto:has(> button),
-div.relative.flex[class*="ml-auto"]:has(> button),
-div.relative.flex.tbl\:ml-5:has(> button) {
+body.inleo-articles-page div.tbl\:flex.flex-row.items-center.-left-3>button,
+body.inleo-articles-page div.flex.flex-row.items-center.-left-3>button,
+body.inleo-articles-page div.relative.flex.ml-auto:has(> button),
+body.inleo-articles-page div.relative.flex[class*="ml-auto"]:has(> button),
+body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
     flex: 1 1 0 !important;
 }
 
 /* Global button styling for ALL inner buttons (filters and the INLEO button) */
-div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 button {
+body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 button {
     padding: 0 !important;
     font-size: 11px !important;
     letter-spacing: 0.5px !important;
@@ -1089,9 +1089,9 @@ div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 button {
 }
 
 /* Force the inner INLEO button to expand to completely fill its flexible wrapper */
-div.relative.flex.ml-auto>button,
-div.relative.flex[class*="ml-auto"]>button,
-div.relative.flex.tbl\:ml-5>button {
+body.inleo-articles-page div.relative.flex.ml-auto>button,
+body.inleo-articles-page div.relative.flex[class*="ml-auto"]>button,
+body.inleo-articles-page div.relative.flex.tbl\:ml-5>button {
     width: 100% !important;
 }
 

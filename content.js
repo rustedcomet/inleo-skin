@@ -1,5 +1,17 @@
 let currentThemeSheet = null;
 let currentThemeName = null;
+const LEFT_MENU_ITEMS_TO_HIDE = new Set([
+    'leodex',
+    'perps',
+    'predict',
+    'auto vote',
+    'hivepro'
+]);
+const RIGHT_COLUMN_SECTIONS_TO_HIDE = new Set([
+    'who to follow',
+    'portfolio',
+    'leo tokenomics'
+]);
 
 /* =========================================================
    EDITOR TOOLBAR TWEAKS — Always-on stylesheet
@@ -18,6 +30,13 @@ editorTweaksSheet.replaceSync(`
     button[aria-label="Upload Short"] { display: none !important; }
 `);
 document.adoptedStyleSheets = [...document.adoptedStyleSheets, editorTweaksSheet];
+
+function getSidebarNav() {
+    return Array.from(document.querySelectorAll('nav')).find(nav => {
+        const className = typeof nav.className === 'string' ? nav.className : '';
+        return className.includes('sm:flex') && className.includes('hidden');
+    }) || document.querySelector('nav');
+}
 
 // Initial load
 chrome.storage.sync.get(['activeTheme'], (result) => {
@@ -100,6 +119,12 @@ function removeFontLinks() {
     document.querySelectorAll('link[id^="inleo-skin-font-"]').forEach(el => el.remove());
 }
 
+function updatePageContext() {
+    const path = window.location.pathname || '';
+    document.body?.classList.toggle('inleo-wallet-page', /\/wallet(\/|$)/.test(path));
+    document.body?.classList.toggle('inleo-articles-page', /\/posts(\/|$)/.test(path));
+}
+
 /* =========================================================
    THEME PERSISTENCE — adoptedStyleSheets
    Using document.adoptedStyleSheets instead of a <link> tag.
@@ -126,7 +151,7 @@ function removePriceTicker() {
 function waitForNavAndInjectTicker() {
     // Wait for nav to be available in DOM
     const check = setInterval(() => {
-        const nav = document.querySelector('nav');
+        const nav = getSidebarNav();
         if (nav) {
             clearInterval(check);
             injectPriceTicker();
@@ -137,39 +162,41 @@ function waitForNavAndInjectTicker() {
 }
 
 function injectPriceTicker() {
-    if (document.getElementById('cyber-price-ticker')) return;
-
-    const nav = document.querySelector('nav');
+    const nav = getSidebarNav();
     if (!nav || !nav.parentElement) return;
 
-    const ticker = document.createElement('div');
-    ticker.id = 'cyber-price-ticker';
-    ticker.innerHTML = `
-        <div class="ticker-title">Market Data</div>
-        <div class="ticker-row" id="ticker-btc">
-            <span class="ticker-symbol">BTC</span>
-            <span class="ticker-price">Loading...</span>
-            <span class="ticker-change">—</span>
-        </div>
-        <div class="ticker-row" id="ticker-hive">
-            <span class="ticker-symbol">HIVE</span>
-            <span class="ticker-price">Loading...</span>
-            <span class="ticker-change">—</span>
-        </div>
-        <div class="ticker-row" id="ticker-leo">
-            <span class="ticker-symbol">LEO</span>
-            <span class="ticker-price">Loading...</span>
-            <span class="ticker-change">—</span>
-        </div>
-    `;
+    let ticker = document.getElementById('cyber-price-ticker');
+    if (!ticker) {
+        ticker = document.createElement('div');
+        ticker.id = 'cyber-price-ticker';
+        ticker.innerHTML = `
+            <div class="ticker-title">Market Data</div>
+            <div class="ticker-row" id="ticker-btc">
+                <span class="ticker-symbol">BTC</span>
+                <span class="ticker-price">Loading...</span>
+                <span class="ticker-change">—</span>
+            </div>
+            <div class="ticker-row" id="ticker-hive">
+                <span class="ticker-symbol">HIVE</span>
+                <span class="ticker-price">Loading...</span>
+                <span class="ticker-change">—</span>
+            </div>
+            <div class="ticker-row" id="ticker-leo">
+                <span class="ticker-symbol">LEO</span>
+                <span class="ticker-price">Loading...</span>
+                <span class="ticker-change">—</span>
+            </div>
+        `;
+    }
 
-    // Insert after the nav element's parent container (the sidebar wrapper)
-    nav.parentElement.insertBefore(ticker, nav.nextSibling);
+    mountPriceTicker(ticker, nav);
     console.log('[Inleo Skins] Price ticker injected');
 
     // Fetch immediately, then every 60s
     updatePrices();
-    tickerInterval = setInterval(updatePrices, 60000);
+    if (!tickerInterval) {
+        tickerInterval = setInterval(updatePrices, 60000);
+    }
 }
 
 async function updatePrices() {
@@ -232,6 +259,49 @@ function updateTickerRow(id, coinData) {
     }
 }
 
+function findPublishContainer(nav) {
+    if (!nav || !nav.parentElement) return null;
+
+    const siblingPublishContainer = Array.from(nav.parentElement.children).find(child => {
+        return child.querySelector?.('a[title="Publish"], a[aria-label="Publish"], a[href="/publish"]');
+    });
+    if (siblingPublishContainer) return siblingPublishContainer;
+
+    const publishControl = Array.from(nav.querySelectorAll('a, button')).find(control => {
+        const label = normalizeSidebarLabel(
+            control.textContent ||
+            control.getAttribute('title') ||
+            control.getAttribute('aria-label')
+        );
+        return label === 'publish';
+    });
+
+    return getNavItemContainer(publishControl, nav);
+}
+
+function mountPriceTicker(ticker, nav) {
+    const publishContainer = findPublishContainer(nav);
+    if (!publishContainer || !publishContainer.parentElement) return false;
+
+    if (publishContainer.parentElement === nav) {
+        publishContainer.style.setProperty('order', '9', 'important');
+        ticker.style.setProperty('order', '10', 'important');
+        ticker.style.setProperty('width', '100%', 'important');
+        if (publishContainer.nextSibling !== ticker) {
+            nav.insertBefore(ticker, publishContainer.nextSibling);
+        }
+        return true;
+    }
+
+    ticker.style.removeProperty('order');
+    ticker.style.removeProperty('width');
+    if (publishContainer.nextSibling !== ticker) {
+        publishContainer.parentElement.insertBefore(ticker, publishContainer.nextSibling);
+    }
+
+    return true;
+}
+
 /* =========================================================
    DOM MAINTENANCE POLLER
    The CSS itself persists via adoptedStyleSheets (no re-injection
@@ -244,6 +314,9 @@ function updateTickerRow(id, coinData) {
 setInterval(() => {
     chrome.storage.sync.get(['activeTheme'], (result) => {
         const theme = result.activeTheme;
+        updatePageContext();
+        hideUnwantedSidebarSections();
+
         if (!theme || theme === 'none') {
             // Theme was disabled — clean up adopted sheet
             if (currentThemeSheet) {
@@ -270,10 +343,12 @@ setInterval(() => {
 
         // 4. Ensure the ticker survives body replacements
         if (theme.includes('cyberpunk')) {
-            if (!document.getElementById('cyber-price-ticker')) {
-                const nav = document.querySelector('nav');
-                if (nav && nav.parentElement) {
+            const nav = getSidebarNav();
+            if (nav) {
+                if (!document.getElementById('cyber-price-ticker')) {
                     injectPriceTicker();
+                } else {
+                    mountPriceTicker(document.getElementById('cyber-price-ticker'), nav);
                 }
             }
         }
@@ -303,7 +378,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 function injectSettingsLink() {
     if (document.getElementById('inleo-skin-settings-link')) return;
 
-    const nav = document.querySelector('nav');
+    const nav = getSidebarNav();
     if (!nav) return;
 
     // Find the exact Profile link container by checking text content directly
@@ -356,6 +431,92 @@ function injectSettingsLink() {
     profileContainer.parentElement.insertBefore(settingsContainer, profileContainer.nextSibling);
 }
 
+function normalizeSidebarLabel(text) {
+    return (text || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+function markElementHidden(element, reason) {
+    if (!element) return;
+    if (element.dataset.inleoHiddenBy === reason) return;
+    element.dataset.inleoHiddenBy = reason;
+    element.style.setProperty('display', 'none', 'important');
+}
+
+function getNavItemContainer(node, nav) {
+    if (!node || !nav) return null;
+
+    let current = node;
+    while (current.parentElement && current.parentElement !== nav) {
+        const parent = current.parentElement;
+        const interactiveCount = parent.querySelectorAll('a, button').length;
+        if (interactiveCount > 1) break;
+        current = parent;
+    }
+
+    return current;
+}
+
+function findRightRailCardContainer(node) {
+    let current = node;
+    let bestCandidate = null;
+
+    while (current && current !== document.body) {
+        if (current.matches?.('aside, main, nav')) break;
+
+        const className = typeof current.className === 'string' ? current.className : '';
+        const isColumnWrapper = /\bsticky\b|top-0|max-w-\[|tbl:block|gap-y-3/.test(className);
+        if (isColumnWrapper) break;
+
+        const isCardContainer = /(widget-card-wallet|tokenomics-card|rounded-xl|rounded-2xl|overflow-hidden|shadow|border)/.test(className);
+        if (isCardContainer) {
+            bestCandidate = current;
+        }
+
+        current = current.parentElement;
+    }
+
+    return bestCandidate || node.parentElement;
+}
+
+function hideUnwantedSidebarSections() {
+    hideLeftMenuItems();
+    hideRightColumnSections();
+}
+
+function hideLeftMenuItems() {
+    const nav = getSidebarNav();
+    if (!nav) return;
+
+    nav.querySelectorAll('a, button').forEach(link => {
+        const label = normalizeSidebarLabel(link.textContent || link.getAttribute('title'));
+        if (!LEFT_MENU_ITEMS_TO_HIDE.has(label)) return;
+
+        const container = getNavItemContainer(link, nav);
+        markElementHidden(container, 'left-nav');
+    });
+}
+
+function hideRightColumnSections() {
+    const candidates = document.querySelectorAll('aside h1, aside h2, aside h3, aside h4, aside h5, aside h6, aside strong, aside span, aside p, aside div');
+
+    candidates.forEach(node => {
+        if (!node || node.children.length > 0) return;
+
+        const label = normalizeSidebarLabel(node.textContent);
+        if (!RIGHT_COLUMN_SECTIONS_TO_HIDE.has(label)) return;
+
+        const card = findRightRailCardContainer(node);
+        markElementHidden(card, 'right-rail');
+    });
+}
+
+window.addEventListener('load', () => {
+    scheduleSidebarCleanup(0);
+});
+
 /* =========================================================
    MUTE FEATURE & AVATARS
    Hides posts from specific users, injects a mute button,
@@ -371,6 +532,7 @@ let currentUser = null;
    ========================================================= */
 let _processFeedTimer = null;
 let _isProcessingFeed = false;
+let _sidebarCleanupTimer = null;
 
 function scheduleProcessFeed(delay = 200) {
     if (_processFeedTimer) return; // already scheduled
@@ -383,10 +545,21 @@ function scheduleProcessFeed(delay = 200) {
     }, delay);
 }
 
+function scheduleSidebarCleanup(delay = 150) {
+    if (_sidebarCleanupTimer) return;
+    _sidebarCleanupTimer = setTimeout(() => {
+        _sidebarCleanupTimer = null;
+        hideUnwantedSidebarSections();
+    }, delay);
+}
+
 // Function to find the logged-in username securely from the left menu
 function updateCurrentUser() {
-    const profileLinks = Array.from(document.querySelectorAll('nav a[href^="/profile/"]'));
-    const sidebarProfileLink = profileLinks.find(link => link.closest('nav'));
+    const nav = getSidebarNav();
+    if (!nav) return;
+
+    const profileLinks = Array.from(nav.querySelectorAll('a[href^="/profile/"]'));
+    const sidebarProfileLink = profileLinks.find(link => link.closest('nav') === nav);
     if (sidebarProfileLink) {
         const hrefParts = sidebarProfileLink.getAttribute('href').split('/profile/');
         if (hrefParts.length > 1) {
@@ -602,6 +775,7 @@ const feedObserver = new MutationObserver((mutations) => {
         }
     }
     if (shouldProcess) {
+        scheduleSidebarCleanup(150);
         scheduleProcessFeed(150);
     }
 });
@@ -615,6 +789,7 @@ function startFeedObserver() {
     }
 }
 startFeedObserver();
+updatePageContext();
 
 // Backup: try to re-attach observer if it gets completely detached by SPA
 setInterval(() => {

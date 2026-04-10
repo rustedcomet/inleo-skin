@@ -753,6 +753,90 @@ InLeo uses a Slate.js-based editor powered by React. The toolbar re-renders dyna
 #### Why a Separate Adopted Stylesheet?
 The existing theme sheet (`currentThemeSheet`) is removed when the user disables their theme (`theme === 'none'`). The editor tweaks sheet is a distinct `CSSStyleSheet` object, so the removal logic (`filter(s => s !== currentThemeSheet)`) does not affect it. The buttons stay hidden at all times.
 
+## Phase 5 Update: Sidebar Cleanup & Layout Stabilization (Delivered Apr 2026)
+
+This phase shipped a focused desktop cleanup pass for the Cyberpunk V2 experience. The goal was not to redesign Inleo globally, but to remove specific product areas the user does not use, keep both desktop side rails visible, and restore a stable sidebar layout after recent upstream UI changes on `inleo.io`.
+
+### 5.11 Targeted Sidebar Simplification
+
+The content script now hides sidebar items by normalized label matching instead of brittle positional selectors or broad wrapper removal.
+
+**Left sidebar items hidden:**
+- `LeoDex`
+- `Perps`
+- `Predict`
+- `Auto Vote`
+- `HivePro`
+
+**Right rail cards hidden:**
+- `Who to Follow`
+- `Portfolio`
+- `LEO Tokenomics`
+
+#### Implementation details
+- Added `LEFT_MENU_ITEMS_TO_HIDE` and `RIGHT_COLUMN_SECTIONS_TO_HIDE` sets in `content.js`.
+- Added `normalizeSidebarLabel()`, `getNavItemContainer()`, `findRightRailCardContainer()`, and `markElementHidden()` helpers.
+- Added `hideLeftMenuItems()` and `hideRightColumnSections()` so the extension hides only the intended row/card container instead of collapsing an entire sidebar wrapper.
+- Added `scheduleSidebarCleanup()` and wired it into both the DOM maintenance poller and the feed `MutationObserver` so the hidden state survives INLEO SPA re-renders.
+
+### 5.12 Safer Desktop Nav Detection
+
+INLEO now renders multiple navigation-like structures on some routes, including wallet-specific layouts and responsive variants. Relying on `document.querySelector('nav')` was no longer safe.
+
+#### Fix
+- Added `getSidebarNav()` in `content.js` to prefer the real desktop sidebar nav (`sm:flex` + `hidden`) before falling back to the first `nav`.
+- Reused that helper in ticker mounting, settings-link injection, current-user detection, and sidebar cleanup.
+
+This change prevented the extension from mutating the wrong nav container on routes that inject secondary navigation blocks.
+
+### 5.13 Market Data Placement After Publish
+
+The `Market Data` block was updated so it appears directly after the `Publish` control without moving `Publish` to the top of the sidebar.
+
+#### Root cause
+INLEO uses two different desktop sidebar layouts:
+1. `Publish` can live inside the main nav flow.
+2. `Publish` can render as its own sibling block below the nav.
+
+Earlier ticker mounting logic inserted after the sidebar wrapper, which left `Market Data` too low. An intermediate attempt also over-corrected and moved `Publish` upward, which was not desired.
+
+#### Final fix
+- Added `findPublishContainer(nav)` to detect both desktop sidebar variants.
+- Added `mountPriceTicker(ticker, nav)` to:
+  - place `Market Data` directly after the in-nav publish row when `Publish` is inside the nav
+  - place `Market Data` directly after the lower publish block when `Publish` is rendered outside the nav
+- Updated the maintenance poller to remount the ticker in place after SPA updates.
+- Tightened ticker spacing in `themes/cyberpunk-v2.css` so it sits cleanly under `Publish`.
+
+### 5.14 Route-Scoped Articles Dropdown CSS
+
+Some broad Cyberpunk V2 dropdown layout overrides were originally intended only for the articles page, but they were being applied site-wide.
+
+#### Fix
+- Added `updatePageContext()` in `content.js`.
+- Added `body.inleo-articles-page` and `body.inleo-wallet-page` state classes derived from `window.location.pathname`.
+- Scoped the "ARTICLES PAGE" filter/dropdown layout rules in `themes/cyberpunk-v2.css` to `body.inleo-articles-page`.
+
+This keeps article-filter layout fixes active on `/posts` while reducing the risk of collateral breakage on `/threads` and other routes.
+
+### 5.15 Live Verification & Findings
+
+All Phase 5 UI changes were rechecked in **full Google Chrome** at desktop resolution with the unpacked extension loaded.
+
+#### Verified working
+- Left desktop sidebar remains visible.
+- Only the requested left items are hidden.
+- Right desktop rail remains visible.
+- Only the requested right-rail cards are hidden.
+- `Market Data` appears directly after `Publish`.
+
+#### Investigations completed
+- The `Your Lists` dropdown was tested with the extension active, with the theme set to `none`, and with the extension fully disabled. The menu still failed to render when the extension was disabled, so that issue was classified as **upstream INLEO behavior**, not an extension regression.
+- The route `https://inleo.io/threads/skiptvads:justme` was tested with the extension enabled and disabled. The page completed loading in both states with a single main-frame navigation, so the observed "reload forever" symptom could not be reproduced as an extension-caused loop.
+
+#### Ongoing constraint
+- This extension still depends on INLEO's current text labels and DOM shapes. If the site renames sidebar labels or changes card wrappers again, the matching strings in `content.js` will need to be updated.
+
 ---
 
 ## Future Phases
