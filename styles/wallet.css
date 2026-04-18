@@ -1,0 +1,261 @@
+/* styles/wallet.css — Externalized wallet styles.
+   Loaded by wallet.js via fetch() -> CSSStyleSheet.replaceSync and attached
+   to document.adoptedStyleSheets, same pattern as theme CSS. Kept in a
+   separate file so designers can tweak without touching JavaScript. */
+
+/* ---- Wallet container (replaces center main) ---- */
+#inleo-wallet-container {
+    padding: 28px 24px 60px;
+    font-family: "Share Tech Mono", monospace;
+    color: #e0e0e0;
+    line-height: 1.6;
+}
+#inleo-wallet-container * { box-sizing: border-box; }
+
+.wlt-inner {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+/* ---- Header ---- */
+.wlt-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+.wlt-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #00f3ff;
+    text-shadow: 0 0 10px rgba(0,243,255,0.3);
+    margin: 0;
+}
+.wlt-user { font-size: 14px; color: #888; }
+.wlt-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.wlt-search {
+    background: rgba(0,243,255,0.04);
+    border: 1px solid rgba(0,243,255,0.2);
+    color: #00f3ff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    width: 175px;
+    outline: none;
+    transition: all 0.2s;
+}
+.wlt-search::placeholder { color: #334; }
+.wlt-search:focus {
+    border-color: #00f3ff;
+    box-shadow: 0 0 8px rgba(0,243,255,0.15);
+}
+.wlt-btn {
+    background: rgba(0,243,255,0.06);
+    border: 1px solid rgba(0,243,255,0.2);
+    color: #00f3ff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.wlt-btn:hover {
+    background: rgba(0,243,255,0.12);
+    box-shadow: 0 0 8px rgba(0,243,255,0.15);
+}
+.wlt-refresh { font-size: 16px; padding: 5px 11px; }
+
+/* ---- Token Sections ---- */
+.wlt-section {
+    background: rgba(0,243,255,0.02);
+    border: 1px solid rgba(0,243,255,0.08);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    transition: border-color 0.3s;
+}
+.wlt-section:hover { border-color: rgba(0,243,255,0.15); }
+
+.wlt-token-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.wlt-token-left { display: flex; align-items: center; gap: 10px; }
+.wlt-token-icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+}
+.wlt-icon-hive {
+    background: linear-gradient(135deg, #ff2a00, #ff4560);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(255,42,0,0.3);
+}
+.wlt-icon-hbd {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(46,204,113,0.3);
+}
+.wlt-token-name { font-size: 17px; font-weight: 700; color: #fff; }
+.wlt-token-bal { font-size: 21px; font-weight: 700; color: #fff; text-align: right; }
+.wlt-token-desc { font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 10px; }
+
+/* ---- Sub-rows ---- */
+.wlt-sub {
+    padding: 12px 0 12px 18px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    position: relative;
+}
+.wlt-sub::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: #ff2a00;
+    box-shadow: 0 0 6px rgba(255,42,0,0.4);
+    border-radius: 1px;
+}
+.wlt-sub.wlt-sub-last::before { bottom: 50%; }
+.wlt-sub-head {
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 8px;
+}
+.wlt-sub-name { font-size: 14px; font-weight: 600; color: #ddd; }
+.wlt-sub-name-row { display: flex; align-items: center; gap: 8px; }
+.wlt-sub-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.wlt-sub-bal { font-size: 17px; font-weight: 600; color: #fff; }
+.wlt-sub-detail { font-size: 11px; color: #777; }
+.wlt-sub-desc { font-size: 12px; color: #555; margin-top: 4px; }
+
+.wlt-badge {
+    display: inline-block; padding: 1px 8px;
+    border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.wlt-apr { background: rgba(0,243,255,0.1); color: #00f3ff; }
+.wlt-more { background: rgba(255,255,255,0.06); color: #888; font-size: 10px; text-transform: uppercase; }
+
+.wlt-details-btn {
+    background: rgba(0,243,255,0.06);
+    border: 1px solid rgba(0,243,255,0.15);
+    color: #00f3ff;
+    padding: 3px 10px; border-radius: 4px;
+    font-family: inherit; font-size: 11px;
+    cursor: pointer; transition: all 0.2s;
+}
+.wlt-details-btn:hover { background: rgba(0,243,255,0.12); }
+
+/* ---- Estimate ---- */
+.wlt-estimate { border-top: 2px solid rgba(0,243,255,0.12); }
+.wlt-est-row { display: flex; align-items: center; justify-content: space-between; }
+.wlt-est-label { font-size: 16px; font-weight: 700; color: #fff; }
+.wlt-est-desc { font-size: 12px; color: #555; margin-top: 2px; }
+.wlt-est-val {
+    font-size: 24px; font-weight: 700;
+    color: #00f3ff; text-shadow: 0 0 12px rgba(0,243,255,0.3);
+}
+
+/* ---- Error ---- */
+.wlt-error {
+    background: rgba(231,76,60,0.08);
+    border: 1px solid rgba(231,76,60,0.2);
+    border-radius: 8px; padding: 16px;
+    text-align: center; color: #e74c3c; margin-bottom: 14px;
+}
+.wlt-error-retry {
+    background: rgba(231,76,60,0.12);
+    border: 1px solid rgba(231,76,60,0.3);
+    color: #e74c3c; padding: 6px 18px;
+    border-radius: 6px; cursor: pointer;
+    margin-top: 10px; font-family: inherit; font-size: 13px;
+}
+.wlt-error-retry:hover { background: rgba(231,76,60,0.2); }
+
+/* ---- Modal ---- */
+.wlt-modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 2147483647;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+}
+.wlt-modal {
+    background: #0a0a16;
+    border: 1px solid rgba(0,243,255,0.15);
+    border-radius: 12px; padding: 24px;
+    max-width: 560px; width: 92%;
+    max-height: 75vh; margin: 0 auto;
+    overflow-y: auto; color: #e0e0e0;
+    font-family: "Share Tech Mono", monospace;
+}
+.wlt-modal h3 { font-size: 18px; color: #00f3ff; margin: 0 0 16px; }
+.wlt-modal-close {
+    float: right; background: none; border: none;
+    color: #888; font-size: 22px; cursor: pointer;
+}
+.wlt-modal-close:hover { color: #fff; }
+.wlt-modal-sect { margin-bottom: 16px; }
+.wlt-modal-sect h4 { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+.wlt-dtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wlt-dtable th { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(0,243,255,0.1); color: #777; font-weight: 600; }
+.wlt-dtable td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.wlt-dtable tr:hover td { background: rgba(0,243,255,0.03); }
+
+/* ---- Hive Engine Tokens ---- */
+.wlt-he-title {
+    font-size: 15px; font-weight: 700; color: #00f3ff;
+    margin: 24px 0 12px; text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex; align-items: center; gap: 8px;
+}
+.wlt-he-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: rgba(0,243,255,0.1);
+}
+.wlt-he-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 14px;
+}
+@media (max-width: 500px) { .wlt-he-grid { grid-template-columns: 1fr; } }
+.wlt-he-card {
+    background: rgba(0,243,255,0.02);
+    border: 1px solid rgba(0,243,255,0.06);
+    border-radius: 8px; padding: 12px 14px;
+    transition: border-color 0.3s;
+}
+.wlt-he-card:hover { border-color: rgba(0,243,255,0.15); }
+.wlt-he-top {
+    display: flex; align-items: center;
+    justify-content: space-between;
+}
+.wlt-he-sym { font-size: 13px; font-weight: 700; color: #ccc; }
+.wlt-he-bal { font-size: 15px; font-weight: 600; color: #fff; text-align: right; }
+.wlt-he-meta {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.03);
+}
+.wlt-he-staked { font-size: 11px; color: #666; }
+.wlt-he-usd { font-size: 11px; color: #00f3ff; opacity: 0.7; }
+.wlt-he-loading { color: #444; font-size: 12px; padding: 8px 0; }
+.wlt-total-estimate { margin-top: 20px; border-top-color: rgba(0,243,255,0.2); }
+
+.wlt-footer {
+    text-align: center; padding: 24px 0 0;
+    font-size: 11px; color: #333;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    margin-top: 28px;
+}

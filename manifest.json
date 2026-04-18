@@ -28,8 +28,43 @@
                 "*://*.inleo.io/*"
             ],
             "js": [
-                "content.js",
-                "wallet.js"
+                "features/slateBridge.js"
+            ],
+            "world": "MAIN",
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "*://inleo.io/*",
+                "*://*.inleo.io/*"
+            ],
+            "js": [
+                "core/logger.js",
+                "core/storage.js",
+                "core/state.js",
+                "core/utils.js",
+                "core/scheduler.js",
+                "core/routeController.js",
+                "data/hashtagEntities.js",
+                "data/hashtagRules.js",
+                "features/editorTweaks.js",
+                "features/marketTicker.js",
+                "features/theme.js",
+                "features/currentUser.js",
+                "features/settingsLink.js",
+                "features/sidebarCleanup.js",
+                "features/avatarMarkers.js",
+                "features/muteFeed.js",
+                "features/composerHashtags.js",
+                "wallet.js",
+                "wallet/walletStyles.js",
+                "wallet/walletApi.js",
+                "wallet/walletCache.js",
+                "wallet/walletView.js",
+                "wallet/walletRender.js",
+                "wallet/walletModal.js",
+                "wallet/walletRoute.js",
+                "content.js"
             ],
             "run_at": "document_start"
         }
@@ -38,7 +73,8 @@
         {
             "resources": [
                 "img/*",
-                "themes/*"
+                "themes/*",
+                "styles/*"
             ],
             "matches": [
                 "*://inleo.io/*",
