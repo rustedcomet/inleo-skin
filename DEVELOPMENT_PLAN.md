@@ -618,140 +618,89 @@ If the user navigates directly to `/username/wallet`, the wallet auto-opens once
 
 ---
 
-## Phase 5: Hivemoji Integration (On-Chain Custom Emoji Rendering)
+## Phase 5: Sidebar Cleanup & Layout Stabilization (Delivered Apr 2026)
 
-### 5.1 Overview
+This phase shipped a focused desktop cleanup pass for the Cyberpunk V2 experience. The goal was not to redesign Inleo globally, but to remove specific product areas the user does not use, keep both desktop side rails visible, and restore a stable sidebar layout after recent upstream UI changes on `inleo.io`.
 
-Integrate the rendering engine from [Hivemoji](https://github.com/mrtats/Hivemoji) to display custom on-chain emojis within Inleo posts. Hivemoji is a decentralized emoji protocol for the Hive blockchain — users create custom emojis stored as base64 `custom_json` operations, and frontends render `:emojiname:` tokens as inline `<img>` tags. Currently Hivemoji targets hive.blog, peakd.com, and ecency.com. Inleo is **not** supported by the standalone extension, making this a unique feature for Inleo Skin users.
+### 5.1 Targeted Sidebar Simplification
 
-**Scope**: Render-only. Emoji creation/upload remains the responsibility of the standalone Hivemoji extension or its web UI. This integration focuses exclusively on resolving and displaying emojis within the Inleo feed.
+The content script now hides sidebar items by normalized label matching instead of brittle positional selectors or broad wrapper removal.
 
-### 5.2 Architecture — Render Engine Embedding
+**Left sidebar items hidden:**
+- `LeoDex`
+- `Perps`
+- `Predict`
+- `Auto Vote`
+- `HivePro`
 
-The integration follows **Option A (Embed Rendering Engine)** — porting only the emoji resolver and renderer into `content.js`, avoiding any dependency on Hive Keychain or upload logic.
+**Right rail cards hidden:**
+- `Who to Follow`
+- `Portfolio`
+- `LEO Tokenomics`
 
-#### Components to Port from Hivemoji:
-1. **Emoji Resolver** — Queries `condenser_api.get_account_history` via Hive RPC node to fetch `custom_json` operations containing emoji definitions (both v1 single-op and v2 chunked uploads).
-2. **Cache Layer** — In-memory + `chrome.storage.local` persistent cache to avoid redundant RPC calls. Keyed by `@username:emojiname`.
-3. **Token Scanner** — Regex-based scanner that finds `:emojiname:` patterns in post text nodes.
-4. **Image Renderer** — Replaces matched tokens with inline `<img>` tags using the resolved base64 data URI.
+#### Implementation details
+- Added `LEFT_MENU_ITEMS_TO_HIDE` and `RIGHT_COLUMN_SECTIONS_TO_HIDE` sets in `content.js`.
+- Added `normalizeSidebarLabel()`, `getNavItemContainer()`, `findRightRailCardContainer()`, and `markElementHidden()` helpers.
+- Added `hideLeftMenuItems()` and `hideRightColumnSections()` so the extension hides only the intended row/card container instead of collapsing an entire sidebar wrapper.
+- Added `scheduleSidebarCleanup()` and wired it into both the DOM maintenance poller and the feed `MutationObserver` so the hidden state survives INLEO SPA re-renders.
 
-#### Components NOT Ported:
-- Upload UI / emoji creation form
-- Hive Keychain signing integration
-- Popup interface for managing personal emojis
-- Any write operations to the blockchain
+### 5.2 Safer Desktop Nav Detection
 
-### 5.3 Integration with Existing Pipeline
+INLEO now renders multiple navigation-like structures on some routes, including wallet-specific layouts and responsive variants. Relying on `document.querySelector('nav')` was no longer safe.
 
-The emoji renderer hooks into the existing `processFeed()` MutationObserver pipeline as a new processing step:
+#### Fix
+- Added `getSidebarNav()` in `content.js` to prefer the real desktop sidebar nav (`sm:flex` + `hidden`) before falling back to the first `nav`.
+- Reused that helper in ticker mounting, settings-link injection, current-user detection, and sidebar cleanup.
 
-```
-MutationObserver detects new DOM nodes
-        ↓
-  processFeed()
-        ↓
-  ┌─ Step 1: Hide muted user posts
-  ├─ Step 2: Apply avatar outlines (self vs. other)
-  ├─ Step 3: Inject [ mute ] buttons
-  └─ Step 4 (NEW): Scan post text nodes for :emoji: tokens → resolve → render <img>
-```
+This change prevented the extension from mutating the wrong nav container on routes that inject secondary navigation blocks.
 
-**DOM Targeting**: Post body content on Inleo lives in `<p>` tags and rich-text containers within the feed. The scanner must:
-- Target only post body text nodes (not usernames, timestamps, or UI labels).
-- Skip already-processed nodes (mark with `data-hivemoji-processed` attribute).
-- Operate on `TextNode` splits to preserve surrounding text and inline formatting.
+### 5.3 Market Data Placement After Publish
 
-### 5.4 Technical Considerations
+The `Market Data` block was updated so it appears directly after the `Publish` control without moving `Publish` to the top of the sidebar.
 
-#### Hive RPC Calls & Performance
-- Inleo's infinite scroll can load dozens of posts per session. Each unique `@user:emoji` pair requires an RPC lookup on first encounter.
-- **Mitigation**: Aggressive two-tier caching:
-  - **L1 — In-memory Map**: Instant lookup for emojis already resolved in the current session.
-  - **L2 — `chrome.storage.local`**: Persistent across sessions with a configurable TTL (e.g., 24 hours). Prevents redundant RPC calls on page reload.
-- **Batching**: Collect all unique `@user:emoji` pairs found in a single `processFeed()` cycle, deduplicate, check cache, and fire RPC requests only for cache misses.
-- **RPC Endpoint**: Use a public Hive API node (e.g., `https://api.hive.blog`). Consider making this configurable in the popup/options for users running their own nodes.
+#### Root cause
+INLEO uses two different desktop sidebar layouts:
+1. `Publish` can live inside the main nav flow.
+2. `Publish` can render as its own sibling block below the nav.
 
-#### Hivemoji Protocol Versions
-- **v1**: Single `custom_json` operation containing the full base64 emoji data.
-- **v2**: Chunked upload — emoji data split across multiple `custom_json` operations (supports ~100KB total). The resolver must detect the `hivemoji_v2_chunk` operation ID, collect all chunks in order, and concatenate before rendering.
-- Both versions must be handled by the resolver.
+Earlier ticker mounting logic inserted after the sidebar wrapper, which left `Market Data` too low. An intermediate attempt also over-corrected and moved `Publish` upward, which was not desired.
 
-#### SPA Resilience
-- The emoji renderer inherits the same SPA resilience as the existing mute/avatar features — it runs inside `processFeed()` which is triggered by `MutationObserver` and the 3-second DOM maintenance poller.
-- No additional observers or pollers are needed.
+#### Final fix
+- Added `findPublishContainer(nav)` to detect both desktop sidebar variants.
+- Added `mountPriceTicker(ticker, nav)` to:
+  - place `Market Data` directly after the in-nav publish row when `Publish` is inside the nav
+  - place `Market Data` directly after the lower publish block when `Publish` is rendered outside the nav
+- Updated the maintenance poller to remount the ticker in place after SPA updates.
+- Tightened ticker spacing in `themes/cyberpunk-v2.css` so it sits cleanly under `Publish`.
 
-### 5.5 User-Facing Feature Toggle
+### 5.4 Route-Scoped Articles Dropdown CSS
 
-- Add a **"Hivemoji"** checkbox or toggle to `popup.html` alongside the theme selector.
-- State stored in `chrome.storage.sync['hivemojiEnabled']` (cloud-synced).
-- When disabled, the emoji scanning step is skipped entirely in `processFeed()` — zero performance overhead.
-- When enabled, a small emoji indicator (e.g., 🐝) could appear in the price ticker or sidebar to confirm the feature is active.
+Some broad Cyberpunk V2 dropdown layout overrides were originally intended only for the articles page, but they were being applied site-wide.
 
-### 5.6 CSS Styling for Rendered Emojis
+#### Fix
+- Added `updatePageContext()` in `content.js`.
+- Added `body.inleo-articles-page` and `body.inleo-wallet-page` state classes derived from `window.location.pathname`.
+- Scoped the "ARTICLES PAGE" filter/dropdown layout rules in `themes/cyberpunk-v2.css` to `body.inleo-articles-page`.
 
-Add emoji image styling to `cyberpunk-v2.css` (and future themes):
+This keeps article-filter layout fixes active on `/posts` while reducing the risk of collateral breakage on `/threads` and other routes.
 
-```css
-/* Hivemoji inline emoji images */
-img.hivemoji {
-    display: inline-block !important;
-    height: 1.5em !important;
-    width: auto !important;
-    vertical-align: middle !important;
-    margin: 0 2px !important;
-    /* Prevent theme background overrides from affecting emoji transparency */
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-}
-```
+### 5.5 Live Verification & Findings
 
-### 5.7 Storage Schema Addition
+All Phase 5 UI changes were rechecked in **full Google Chrome** at desktop resolution with the unpacked extension loaded.
 
-```
-chrome.storage.sync:
-  hivemojiEnabled: boolean (default: false)
+#### Verified working
+- Left desktop sidebar remains visible.
+- Only the requested left items are hidden.
+- Right desktop rail remains visible.
+- Only the requested right-rail cards are hidden.
+- `Market Data` appears directly after `Publish`.
 
-chrome.storage.local:
-  hivemojiCache: {
-    "@user:emojiname": {
-      data: "data:image/png;base64,...",
-      version: 1 | 2,
-      cachedAt: timestamp
-    },
-    ...
-  }
-```
+#### Investigations completed
+- The `Your Lists` dropdown was tested with the extension active, with the theme set to `none`, and with the extension fully disabled. The menu still failed to render when the extension was disabled, so that issue was classified as **upstream INLEO behavior**, not an extension regression.
+- The route `https://inleo.io/threads/skiptvads:justme` was tested with the extension enabled and disabled. The page completed loading in both states with a single main-frame navigation, so the observed "reload forever" symptom could not be reproduced as an extension-caused loop.
 
-### 5.8 Licensing & Attribution
-- Hivemoji is authored by [@mrtats](https://github.com/mrtats). Confirm license compatibility before embedding resolver code.
-- Add attribution in `README.md` and as a code comment in any ported functions.
-- If license is restrictive, consider reimplementing the resolver from the [Hivemoji protocol spec](https://github.com/mrtats/Hivemoji) rather than copying source directly.
-
-### 5.9 Open Questions (To Resolve Before Implementation)
-1. **Fallback rendering**: If an emoji fails to resolve (deleted, invalid, RPC timeout), should the raw `:emojiname:` token remain visible, or display a placeholder icon?
-2. **Emoji size variants**: Should users be able to control emoji display size (small inline vs. large reaction)?
-3. **Cache invalidation**: How to handle emoji updates — if a user re-uploads an emoji with the same name, the cache will serve stale data. TTL-based expiry vs. manual cache clear button in options?
-4. **Content Security Policy**: Verify that Inleo's CSP headers allow inline base64 `data:image` sources in dynamically created `<img>` tags. If blocked, may need to convert to blob URLs.
-
-### 5.10 Editor Toolbar Cleanup (Done)
-**Feature**: Removed three rarely-used buttons from InLeo's text editor toolbar across all pages: **Heading** ("H"), **Italic** ("I"), and **Upload Short** (video icon).
-
-#### Implementation
-A new **always-on CSS stylesheet** (`editorTweaksSheet`) is injected at the top of `content.js` via `document.adoptedStyleSheets`, completely independent of the theme system. This ensures the buttons are hidden whether or not a theme is active.
-
-```css
-button[aria-label="Heading"] { display: none !important; }
-button[aria-label="Italic"] { display: none !important; }
-button[aria-label="Upload Short"] { display: none !important; }
-```
-
-#### Why CSS Instead of JS DOM Removal?
-InLeo uses a Slate.js-based editor powered by React. The toolbar re-renders dynamically — removing DOM nodes via JavaScript would be reversed on the next React reconciliation cycle. CSS `display: none` persists through re-renders with zero performance cost.
-
-#### Why a Separate Adopted Stylesheet?
-The existing theme sheet (`currentThemeSheet`) is removed when the user disables their theme (`theme === 'none'`). The editor tweaks sheet is a distinct `CSSStyleSheet` object, so the removal logic (`filter(s => s !== currentThemeSheet)`) does not affect it. The buttons stay hidden at all times.
+#### Ongoing constraint
+- This extension still depends on INLEO's current text labels and DOM shapes. If the site renames sidebar labels or changes card wrappers again, the matching strings in `content.js` will need to be updated.
 
 ---
 
