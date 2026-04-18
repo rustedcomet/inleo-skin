@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SEC_NODE // SURVEILLANCE_OS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&amp;family=Barlow+Condensed:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "industrial-orange": "#d35400",
+                      "industrial-red": "#922b21",
+                      "rusty-brown": "#5d4037",
+                      "gritty-grey": "#1a1a1b",
+                      "surveillance-green": "#2c3e50",
+                      "primary": "#d35400",
+                      "on-primary": "#ffffff",
+                      "surface": "#121212",
+                      "on-surface": "#a6a6a6",
+                      "on-surface-variant": "#808080",
+                      "outline": "#404040",
+                      "background": "#0a0a0a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0px",
+                      "lg": "0px",
+                      "xl": "0px",
+                      "full": "0px"
+              },
+              "fontFamily": {
+                      "headline": ["Black Ops One", "cursive"],
+                      "body": ["Barlow Condensed", "sans-serif"],
+                      "label": ["Barlow Condensed", "sans-serif"]
+              }
+            },
+          },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-[#0a0a0a] text-[#a6a6a6] font-body overflow-x-hidden uppercase;
+            }
+        }
+        .surveillance-grain {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/p6.png');
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0) 50%,
+                rgba(0, 0, 0, 0.4) 50%
+            );
+            background-size: 100% 2px;
+            pointer-events: none;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+            font-size: 1.15rem;
+        }
+        .asymmetric-border {
+            border: 1px solid rgba(211, 84, 0, 0.2);
+        }
+        .stencil-text {
+            font-family: 'Black Ops One', cursive;
+            letter-spacing: 0.05em;
+        }
+        .low-res-img {
+            filter: grayscale(1) contrast(1.5) brightness(0.8) blur(0.3px) sepia(0.2);
+            image-rendering: pixelated;
+        }
+        .surveillance-bg {
+            filter: grayscale(1) contrast(1.2) brightness(0.4);
+            mix-blend-mode: luminosity;
+        }
+    </style>
+</head>
+<body class="dark selection:bg-industrial-orange selection:text-black">
+<div class="surveillance-grain"></div>
+<header class="fixed top-0 w-full flex justify-between items-center px-8 h-12 ml-64 max-w-[calc(100%-16rem)] bg-gritty-grey/90 backdrop-blur-sm z-50 border-b border-white/5">
+<div class="flex items-center gap-4">
+<span class="text-lg stencil-text text-industrial-orange">ETHER_HUD</span>
+<span class="text-[9px] text-industrial-orange/60 font-label tracking-[0.2em] px-2 py-0.5 border border-industrial-orange/30 bg-industrial-orange/5">LIVE_LINK_ESTABLISHED</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-zinc-500 hover:text-industrial-orange cursor-pointer transition-all">search</span>
+</div>
+<div class="flex gap-4 items-center">
+<span class="material-symbols-outlined text-zinc-500 hover:text-industrial-orange cursor-pointer transition-all">notifications</span>
+<span class="material-symbols-outlined text-zinc-500 hover:text-industrial-orange cursor-pointer transition-all">settings</span>
+<span class="material-symbols-outlined text-zinc-500 hover:text-industrial-red cursor-pointer transition-all">power_settings_new</span>
+</div>
+</div>
+</header>
+<aside class="fixed left-0 top-0 h-full flex flex-col p-6 h-screen w-64 border-r border-white/10 bg-[#121212] z-[60]">
+<div class="mb-10 pt-2">
+<h1 class="text-xl stencil-text text-zinc-400 tracking-wider">NEURAL_LINK</h1>
+<p class="font-label uppercase tracking-widest text-[9px] text-zinc-600 mt-1">STATUS: ENCRYPTED // NODE_01</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 p-3 text-industrial-orange border-r-2 border-industrial-orange bg-industrial-orange/10 transition-colors duration-200 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span>Terminal</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors duration-200 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span>Network</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors duration-200 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span>Broadcast</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors duration-200 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined">lock</span>
+<span>Vault</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors duration-200 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span>Intel</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors duration-200 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined">fingerprint</span>
+<span>Identity</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-white/5">
+<button class="w-full py-2 border border-industrial-orange/40 text-industrial-orange font-label text-[10px] tracking-[0.2em] hover:bg-industrial-orange hover:text-black transition-all">
+            NEW_TRANSMISSION
+        </button>
+<div class="mt-6 flex items-center gap-3 bg-zinc-900/50 p-2 border border-white/5">
+<img alt="User HUD Profile" class="w-10 h-10 low-res-img border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz6iSX77s4PSkaMvbfO6ogEjWrZH8lkT1mv2sRMn1ziJ1d5D_kqXb8lvNRXcUdF3jkpLkoz9Chbxs6PYMDPB3P_ha3gwxfVlw4IkARFWb2rgv8mDJ9Gp5E0nVr38qGoaf6zYXNNPakrIMgLhsQOmKpfon-k0xEttVAJ8SsyHtpTKY6Q0V6zvJ5Bk4SV51Zh9bl6BZO981tg5sopWCeV7B0fJ80k0Nq8ChnxJfq9cT3fwiFTFwd-slBZh3vl9_JsHMZCaIklTJtdRA"/>
+<div class="overflow-hidden">
+<p class="text-[10px] font-headline text-zinc-300 truncate">USER_0x992F</p>
+<p class="text-[8px] font-label text-zinc-600">LEVEL_4_ACCESS</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="ml-64 pt-12 min-h-screen grid grid-cols-12 gap-0">
+<section class="col-span-8 relative min-h-screen border-r border-white/5 overflow-hidden">
+<div class="absolute inset-0 z-0 bg-[#050505]">
+<img class="w-full h-full object-cover surveillance-bg" data-alt="Grainy black and white security camera footage of a decaying industrial district" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATytboV1nSxdOfTPnCkWiVJwRz0NaxrNroJ0YkqvB63fvahKTlsLvADNiungBONFCZ91_zqdVnJ_eiSK7BCKj7qBiM9Bys7CpyESA18fQJSJenMwW2YQzQAElwl6nNaLSsdu-CaVPslVVhqGa7cRuxYLmk4wjeHyBmG2touq8S66asgwo-kXXZjrdBBM7haHkJukcmhLkZCzmHZl8841V_RXmgV4OkaK_NebOV3WpIz0561KYjas-jklR_meNSPgbSMK_qjKngqaQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20"></div>
+<div class="scanlines absolute inset-0 opacity-30"></div>
+</div>
+<div class="relative z-10 p-6 space-y-4">
+<div class="bg-gritty-grey/80 border border-white/10 p-4 relative">
+<div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-industrial-orange"></div>
+<div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-industrial-orange"></div>
+<div class="flex gap-4">
+<div class="w-10 h-10 border border-white/10 flex items-center justify-center bg-black/40">
+<span class="material-symbols-outlined text-industrial-orange/60">add_comment</span>
+</div>
+<div class="flex-1">
+<textarea class="bg-black/20 border-none w-full text-sm focus:ring-0 placeholder:text-zinc-600 font-body min-h-[60px]" placeholder="INITIALIZE THREAD..."></textarea>
+<div class="flex justify-between items-center mt-2 border-t border-white/5 pt-2">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-xs text-zinc-600 hover:text-industrial-orange cursor-pointer">image</span>
+<span class="material-symbols-outlined text-xs text-zinc-600 hover:text-industrial-orange cursor-pointer">data_object</span>
+<span class="material-symbols-outlined text-xs text-zinc-600 hover:text-industrial-orange cursor-pointer">link</span>
+</div>
+<button class="text-[10px] font-label tracking-widest text-zinc-400 hover:text-industrial-orange transition-colors">COMMIT_TO_CHAIN</button>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-black/40 border border-white/5 p-5 hover:bg-black/60 transition-all border-l-2 border-l-zinc-700">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-8 h-8 border border-white/10 overflow-hidden">
+<img class="w-full h-full object-cover low-res-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0LW6kQxl9MfVOsdg5IzmMSM5_8TBFIGGjvgHSNGF2QYBQ4WblGirTOS5uc6_raWQVVG8ITIgI56iZTCW95rKxv3P8R6-tB5mocnW5hcOId5e3ko-NFtZbWWRkwemhMiH61OwrQJmX8PsGsuoQ_AnI8nbhi2gT1ln0hH3HuOBK7ym_v7DrTR1ZLRkUliLYcjpSdjlXg3yMNLVwlaTuGUQUP4arxmRyXwLVcSY_4xOTh9WVXUavEnaHsEGVejnHujx0kr8GEFaS-FA"/>
+</div>
+<div>
+<h4 class="text-xs stencil-text text-zinc-300">@cypher_ghost</h4>
+<p class="text-[9px] font-label text-zinc-600">2m AGO // SEC_7</p>
+</div>
+</div>
+<div class="text-[9px] font-label text-industrial-orange/40">DATA_NODE_774</div>
+</div>
+<p class="text-sm text-zinc-400 font-light leading-snug mb-4">
+                    Market volatility detected in the <span class="text-industrial-orange">#LEO</span> sector. Sentiment analysis indicates a massive influx of liquidity from unidentified wallet clusters. Monitoring the ripple effects on Layer 2 protocols.
+                </p>
+<div class="flex gap-6 mt-4 opacity-50 border-t border-white/5 pt-3">
+<button class="flex items-center gap-2 hover:text-industrial-orange transition-colors">
+<span class="material-symbols-outlined text-sm">favorite</span>
+<span class="text-[10px] font-label">1.2K</span>
+</button>
+<button class="flex items-center gap-2 hover:text-zinc-200 transition-colors">
+<span class="material-symbols-outlined text-sm">chat_bubble</span>
+<span class="text-[10px] font-label">84</span>
+</button>
+<button class="flex items-center gap-2 hover:text-zinc-200 transition-colors">
+<span class="material-symbols-outlined text-sm">cycle</span>
+<span class="text-[10px] font-label">312</span>
+</button>
+</div>
+</div>
+<div class="bg-black/40 border border-white/5 p-5 hover:bg-black/60 transition-all border-l-2 border-l-industrial-orange/30">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-8 h-8 border border-white/10 overflow-hidden">
+<img class="w-full h-full object-cover low-res-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuJD7yTuZKSX7rA_6DWCAx_3oHz7Fx54VcyCnSikyKajgE6RbgsKMKSXv1VajtnUfQ0Ti7u8RBqBwGWx8CIffkkaEExaPowukHRWECIgCSXufyJUi1jz7JazL29oZi55w8LPHAlaR8SejN-4_NJHybOpXNFXqPrwxA2oxDCswym96T8rruYO2W5jwHosAb5kAyaSmYTDqovZfKXS0p7FIeCPQmZ08FkNm8_18FFTWTOxvwZHiuimPpL0m4ntMvlZYGi167PjHCypk"/>
+</div>
+<div>
+<h4 class="text-xs stencil-text text-industrial-orange/80">@null_pointer</h4>
+<p class="text-[9px] font-label text-zinc-600">15m AGO // SEC_2</p>
+</div>
+</div>
+<div class="flex gap-1 items-center">
+<div class="w-1.5 h-1.5 bg-industrial-orange"></div>
+<div class="w-1.5 h-1.5 bg-zinc-700"></div>
+<div class="w-1.5 h-1.5 bg-zinc-800"></div>
+</div>
+</div>
+<p class="text-sm text-zinc-400 font-light mb-4">
+                    Interface update complete. Implementing the <span class="text-zinc-200">#EtherealTerminal</span> aesthetic across the main node. Feedback requested.
+                </p>
+<div class="relative w-full h-48 border border-white/5 overflow-hidden group bg-black">
+<img class="w-full h-full object-cover low-res-img opacity-60 group-hover:opacity-100 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoF_e7PbcSMIFlorkkHFl0aIeuVvWzvZqF-GK5ho6XQfkH2qV78TpKB6gbXzZHPg_is8SyLHbuPNhUbHfGoumLDZ6J2mxujfe21LtKb2mjyDduLOJN887Mie5z0EuBGrWt9YPzTSLoTntc_TDOY_v3mVRovZ-mzitruOjcwMrK6U7avn8MjXSa5ToVKba5AWm_yWveVBZhq_NcIHJl7rD05d1cMVmfGy6-4pw_miD_cUYXD-YfTDZX2BCQp_JdsgJyiSTMbEeHty4"/>
+<div class="absolute bottom-2 right-2 text-[8px] font-label bg-black/80 border border-white/10 px-2 py-1 text-industrial-orange">CCTV_FEED_092</div>
+</div>
+<div class="flex gap-6 mt-6 opacity-50">
+<button class="flex items-center gap-2 hover:text-industrial-orange transition-colors">
+<span class="material-symbols-outlined text-sm">favorite</span>
+<span class="text-[10px] font-label">429</span>
+</button>
+<button class="flex items-center gap-2 hover:text-zinc-200 transition-colors">
+<span class="material-symbols-outlined text-sm">chat_bubble</span>
+<span class="text-[10px] font-label">12</span>
+</button>
+</div>
+</div>
+</div>
+<div class="absolute bottom-4 right-4 pointer-events-none text-[8px] font-label text-industrial-orange/30 space-y-1 text-right">
+<p>LATENCY: 14ms</p>
+<p>SYNC_RATE: 99.8%</p>
+<p>COORDS: 35.6895° N, 139.6917° E</p>
+<p>CAM: DEP_AREA_7</p>
+</div>
+</section>
+<aside class="col-span-4 p-6 space-y-6 bg-[#0a0a0a] border-l border-white/5">
+<div class="relative border-b border-zinc-800">
+<input class="w-full bg-transparent border-none pl-0 py-2 text-[11px] font-label tracking-widest focus:ring-0 placeholder:text-zinc-700 text-zinc-400" placeholder="&gt;&gt; QUERY_THE_STREAM" type="text"/>
+</div>
+<section>
+<div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+<h3 class="text-[10px] font-label tracking-widest text-zinc-500">TRENDING_FRAGMENTS</h3>
+<span class="w-4 h-[1px] bg-industrial-orange/30"></span>
+</div>
+<div class="space-y-4">
+<div class="group cursor-pointer">
+<p class="text-[9px] font-label text-industrial-orange/50 group-hover:text-industrial-orange">01 // CRYPTO_PUNK</p>
+<h4 class="text-sm stencil-text text-zinc-400 group-hover:text-zinc-200 transition-colors">THE_GODZILLA_PROTOCOL</h4>
+<p class="text-[9px] font-label text-zinc-600">42,912 THREADS</p>
+</div>
+<div class="group cursor-pointer">
+<p class="text-[9px] font-label text-industrial-orange/50 group-hover:text-industrial-orange">02 // NETWORK</p>
+<h4 class="text-sm stencil-text text-zinc-400 group-hover:text-zinc-200 transition-colors">LEO_FINANCE_v3</h4>
+<p class="text-[9px] font-label text-zinc-600">18,204 THREADS</p>
+</div>
+<div class="group cursor-pointer">
+<p class="text-[9px] font-label text-industrial-orange/50 group-hover:text-industrial-orange">03 // INTEL</p>
+<h4 class="text-sm stencil-text text-zinc-400 group-hover:text-zinc-200 transition-colors">HIVE_HARD_FORK_ETA</h4>
+<p class="text-[9px] font-label text-zinc-600">12,001 THREADS</p>
+</div>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+<h3 class="text-[10px] font-label tracking-widest text-zinc-500">SUGGESTED_NODES</h3>
+<span class="w-4 h-[1px] bg-zinc-800"></span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between group bg-zinc-900/30 p-2 border border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 border border-white/10 overflow-hidden bg-black">
+<img class="w-full h-full object-cover low-res-img opacity-40 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdFdxoi7u1jLClV4PyQqGnVB2xcTKRH-qwXFyaTcsFWW6yR-8GImMx2MWoa5DyzNvtpohUwWgf7oZpraYj0Cjs5iuoHT_hAXEVga91MKjum7GMyACMZl6d4NisL89Z01lIadZpD73e6eTXQ3m0RvlXP6UUWCZrFsBYCGG2InhsOQhv6CMn4LdfV2BzaMwVXlqK85Fkt0RedSVyGbQe9BpaFehQ2LKW45YzdJwlqntqVSzkJBIDzjbhvmh9F1lpaIFe5NanXy1v0u0"/>
+</div>
+<div>
+<h4 class="text-xs stencil-text text-zinc-400">Global_News</h4>
+<p class="text-[8px] font-label text-zinc-600">2.4M CONNECTED</p>
+</div>
+</div>
+<button class="text-[10px] font-label text-industrial-orange/60 hover:text-industrial-orange px-2 border border-industrial-orange/20">LINK</button>
+</div>
+<div class="flex items-center justify-between group bg-zinc-900/30 p-2 border border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 border border-white/10 overflow-hidden bg-black">
+<img class="w-full h-full object-cover low-res-img opacity-40 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK83xw78Lp2J7-Rne5QSd56sUHOBuBVBaAKsq26Y-QRbj6YqOZVzEDPrNL31jBXXsLv8Vepl-eTWWacfVet1jUXpiRA3R7d0eyCAg0CYOpHTnBklSNSxW5VlWeOvtJtGObhoeHbtsxGXnrO71hIwBevW-ReIryKYFlny2ybjPbMY5kUu3ZMD2mXp10FnZ_rsUw1SX3IM-wPf4LWXh95XHSFTDpRdY4Z8aWsADmeySs2QG1ENmar7jrXujX_eDRZxGrVLDzsmi89a4"/>
+</div>
+<div>
+<h4 class="text-xs stencil-text text-zinc-400">Tech_Radar</h4>
+<p class="text-[8px] font-label text-zinc-600">892K CONNECTED</p>
+</div>
+</div>
+<button class="text-[10px] font-label text-industrial-orange/60 hover:text-industrial-orange px-2 border border-industrial-orange/20">LINK</button>
+</div>
+</div>
+</section>
+<div class="pt-6 border-t border-white/5">
+<div class="p-3 bg-black/80 border-l border-industrial-orange font-mono text-[8px] text-zinc-600 leading-tight">
+<p class="text-industrial-orange/60 mb-1">SYS_REPORT_LOG:</p>
+<p>&gt; BUFFER_CLEARED</p>
+<p>&gt; HANDSHAKE_SUCCESSFUL</p>
+<p>&gt; ENCRYPTION_LAYERS: 128_BIT</p>
+</div>
+</div>
+</aside>
+</main>
+<div class="fixed top-0 right-0 w-16 h-16 border-r border-t border-industrial-orange/10 pointer-events-none"></div>
+<div class="fixed bottom-0 left-0 w-16 h-16 border-l border-b border-industrial-orange/10 pointer-events-none ml-64"></div>
+
+</body></html>

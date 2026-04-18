@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEURAL_LINK // ETHER_HUD</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#e7006e",
+                      "primary-container": "#bd00ff",
+                      "surface-tint": "#ecb2ff",
+                      "tertiary-fixed": "#ffd9e0",
+                      "primary-fixed-dim": "#ecb2ff",
+                      "on-secondary-fixed": "#002022",
+                      "on-primary": "#520071",
+                      "surface-container-lowest": "#070e1b",
+                      "error": "#ffb4ab",
+                      "background": "#0d1321",
+                      "secondary": "#d3fbff",
+                      "primary": "#ecb2ff",
+                      "surface-variant": "#2e3543",
+                      "surface-container-highest": "#2e3543",
+                      "tertiary": "#ffb1c3",
+                      "on-secondary-container": "#00686f",
+                      "on-surface": "#dce2f5",
+                      "on-tertiary-container": "#ffffff",
+                      "inverse-surface": "#dce2f5",
+                      "secondary-container": "#00eefc",
+                      "on-tertiary-fixed": "#3f0019",
+                      "on-error": "#690005",
+                      "on-primary-fixed-variant": "#74009f",
+                      "surface-container-high": "#232a38",
+                      "on-error-container": "#ffdad6",
+                      "primary-fixed": "#f8d8ff",
+                      "outline": "#9d8ba0",
+                      "surface-container": "#19202d",
+                      "on-primary-container": "#ffffff",
+                      "inverse-primary": "#9900cf",
+                      "on-secondary-fixed-variant": "#004f54",
+                      "secondary-fixed": "#7df4ff",
+                      "on-surface-variant": "#d4c0d7",
+                      "surface-dim": "#0d1321",
+                      "on-tertiary": "#66002c",
+                      "secondary-fixed-dim": "#00dbe9",
+                      "inverse-on-surface": "#2a303f",
+                      "surface-bright": "#333948",
+                      "surface-container-low": "#151c29",
+                      "on-secondary": "#00363a",
+                      "outline-variant": "#514255",
+                      "error-container": "#93000a",
+                      "surface": "#0d1321",
+                      "on-background": "#dce2f5",
+                      "on-tertiary-fixed-variant": "#8f0041",
+                      "on-primary-fixed": "#320047",
+                      "tertiary-fixed-dim": "#ffb1c3"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0px",
+                      "lg": "0px",
+                      "xl": "0px",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Space Grotesk"],
+                      "body": ["Inter"],
+                      "label": ["Space Grotesk"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0d1321;
+            font-family: 'Inter', sans-serif;
+            color: #dce2f5;
+            overflow-x: hidden;
+        }
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(13, 19, 33, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+            font-size: 1.25rem;
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 12px rgba(236, 178, 255, 0.3);
+            border-color: #ecb2ff;
+        }
+        .asymmetric-border {
+            border-left: 1px solid rgba(236, 178, 255, 0.2);
+            border-bottom: 1px solid rgba(236, 178, 255, 0.1);
+        }
+        .corner-bracket-tr {
+            position: relative;
+        }
+        .corner-bracket-tr::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            border-top: 1px solid rgba(236, 178, 255, 0.5);
+            border-right: 1px solid rgba(236, 178, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="dark selection:bg-primary-container selection:text-white">
+<!-- Header / TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-8 h-16 ml-64 max-w-[calc(100%-16rem)] bg-[#0d1321]/40 backdrop-blur-md z-50 border-b border-[#ecb2ff]/10">
+<div class="flex items-center gap-4">
+<span class="text-lg font-black text-[#ecb2ff] italic font-headline tracking-tighter">ETHER_HUD</span>
+<span class="text-[10px] text-secondary-fixed-dim/40 font-label tracking-[0.2em] px-2 py-0.5 border border-secondary-fixed-dim/20">LIVE_LINK_ESTABLISHED</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-slate-400 hover:text-[#00dbe9] cursor-pointer transition-all">search</span>
+</div>
+<div class="flex gap-4 items-center">
+<span class="material-symbols-outlined text-slate-400 hover:text-[#00dbe9] cursor-pointer transition-all">notifications</span>
+<span class="material-symbols-outlined text-slate-400 hover:text-[#00dbe9] cursor-pointer transition-all">settings</span>
+<span class="material-symbols-outlined text-slate-400 hover:text-[#00dbe9] cursor-pointer transition-all">power_settings_new</span>
+</div>
+</div>
+</header>
+<!-- Sidebar / SideNavBar -->
+<aside class="fixed left-0 top-0 h-full flex flex-col p-6 h-screen w-64 border-r border-[#ecb2ff]/20 bg-[#0d1321]/60 backdrop-blur-xl z-[60] shadow-[0_0_15px_rgba(236,178,255,0.05)]">
+<div class="mb-10">
+<h1 class="text-xl font-bold text-[#ecb2ff] tracking-tighter font-headline">NEURAL_LINK</h1>
+<p class="font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-[10px] text-slate-500">STATUS: ENCRYPTED</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 p-3 text-[#ecb2ff] border-l-2 border-[#ecb2ff] bg-[#ecb2ff]/5 transition-colors duration-300 font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-xs" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span>Terminal</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-slate-500 hover:text-[#d3fbff] hover:bg-[#151c29] transition-colors duration-300 font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-xs" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span>Network</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-slate-500 hover:text-[#d3fbff] hover:bg-[#151c29] transition-colors duration-300 font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-xs" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span>Broadcast</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-slate-500 hover:text-[#d3fbff] hover:bg-[#151c29] transition-colors duration-300 font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-xs" href="#">
+<span class="material-symbols-outlined">lock</span>
+<span>Vault</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-slate-500 hover:text-[#d3fbff] hover:bg-[#151c29] transition-colors duration-300 font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-xs" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span>Intel</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-slate-500 hover:text-[#d3fbff] hover:bg-[#151c29] transition-colors duration-300 font-['Space_Grotesk'] uppercase tracking-[0.05rem] text-xs" href="#">
+<span class="material-symbols-outlined">fingerprint</span>
+<span>Identity</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-[#ecb2ff]/10">
+<button class="w-full py-3 border border-[#ecb2ff]/30 text-[#ecb2ff] font-label text-[10px] tracking-[0.2em] hover:bg-[#ecb2ff]/10 transition-all active:scale-95 glow-hover">
+                NEW_TRANSMISSION
+            </button>
+<div class="mt-6 flex items-center gap-3">
+<img alt="User HUD Profile" class="w-10 h-10 grayscale border border-primary/20" data-alt="Close-up portrait of a tech-focused person with subtle facial digital interface reflections in cold lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz6iSX77s4PSkaMvbfO6ogEjWrZH8lkT1mv2sRMn1ziJ1d5D_kqXb8lvNRXcUdF3jkpLkoz9Chbxs6PYMDPB3P_ha3gwxfVlw4IkARFWb2rgv8mDJ9Gp5E0nVr38qGoaf6zYXNNPakrIMgLhsQOmKpfon-k0xEttVAJ8SsyHtpTKY6Q0V6zvJ5Bk4SV51Zh9bl6BZO981tg5sopWCeV7B0fJ80k0Nq8ChnxJfq9cT3fwiFTFwd-slBZh3vl9_JsHMZCaIklTJtdRA"/>
+<div class="overflow-hidden">
+<p class="text-[10px] font-headline text-primary truncate">USER_0x992F</p>
+<p class="text-[8px] font-label text-slate-500">LEVEL_4_ACCESS</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Grid -->
+<main class="ml-64 pt-16 min-h-screen grid grid-cols-12 gap-0">
+<!-- Center Column (Feed) -->
+<section class="col-span-8 relative min-h-screen border-r border-outline-variant/20 overflow-hidden">
+<!-- Background Image Layer -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover opacity-30 grayscale contrast-125 scale-105" data-alt="Massive cinematic silhouette of Godzilla emerging through dense radioactive fog in a futuristic Tokyo cityscape with neon accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATytboV1nSxdOfTPnCkWiVJwRz0NaxrNroJ0YkqvB63fvahKTlsLvADNiungBONFCZ91_zqdVnJ_eiSK7BCKj7qBiM9Bys7CpyESA18fQJSJenMwW2YQzQAElwl6nNaLSsdu-CaVPslVVhqGa7cRuxYLmk4wjeHyBmG2touq8S66asgwo-kXXZjrdBBM7haHkJukcmhLkZCzmHZl8841V_RXmgV4OkaK_NebOV3WpIz0561KYjas-jklR_meNSPgbSMK_qjKngqaQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/40"></div>
+<div class="scanlines absolute inset-0 opacity-20"></div>
+</div>
+<!-- Content Overlay -->
+<div class="relative z-10 p-8 space-y-6">
+<!-- Composer -->
+<div class="bg-surface-container-low/60 backdrop-blur-xl p-6 border-l-2 border-primary/40 corner-bracket-tr">
+<div class="flex gap-4">
+<div class="w-10 h-10 border border-primary/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/60 text-lg">add_comment</span>
+</div>
+<div class="flex-1">
+<textarea class="bg-transparent border-none w-full text-sm focus:ring-0 placeholder:text-slate-600 font-body min-h-[60px]" placeholder="INITIALIZE THREAD..."></textarea>
+<div class="flex justify-between items-center mt-2">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-xs text-slate-500 hover:text-primary cursor-pointer transition-colors">image</span>
+<span class="material-symbols-outlined text-xs text-slate-500 hover:text-primary cursor-pointer transition-colors">data_object</span>
+<span class="material-symbols-outlined text-xs text-slate-500 hover:text-primary cursor-pointer transition-colors">link</span>
+</div>
+<button class="text-[10px] font-label tracking-widest text-primary hover:text-white transition-colors">COMMIT_TO_CHAIN</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Feed Thread 1 -->
+<div class="bg-surface-container-low/40 backdrop-blur-md p-6 border-l border-primary/20 hover:border-primary/60 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-8 h-8 border border-secondary-fixed-dim/40 overflow-hidden">
+<img class="w-full h-full object-cover grayscale" data-alt="Vintage computer hardware closeup with soft blue light and dust particles" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0LW6kQxl9MfVOsdg5IzmMSM5_8TBFIGGjvgHSNGF2QYBQ4WblGirTOS5uc6_raWQVVG8ITIgI56iZTCW95rKxv3P8R6-tB5mocnW5hcOId5e3ko-NFtZbWWRkwemhMiH61OwrQJmX8PsGsuoQ_AnI8nbhi2gT1ln0hH3HuOBK7ym_v7DrTR1ZLRkUliLYcjpSdjlXg3yMNLVwlaTuGUQUP4arxmRyXwLVcSY_4xOTh9WVXUavEnaHsEGVejnHujx0kr8GEFaS-FA"/>
+</div>
+<div>
+<h4 class="text-xs font-headline text-secondary-fixed-dim">@cypher_ghost</h4>
+<p class="text-[9px] font-label text-slate-500">2m AGO // SEC_7</p>
+</div>
+</div>
+<div class="text-[10px] font-label text-primary/40">DATA_NODE_774</div>
+</div>
+<p class="text-sm text-on-surface-variant font-light leading-relaxed mb-4">
+                        Market volatility detected in the <span class="text-primary">#LEO</span> sector. Sentiment analysis indicates a massive influx of liquidity from unidentified wallet clusters. Monitoring the ripple effects on Layer 2 protocols.
+                    </p>
+<div class="flex gap-6 mt-4 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="flex items-center gap-2 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">favorite</span>
+<span class="text-[10px] font-label tabular-nums">1.2K</span>
+</button>
+<button class="flex items-center gap-2 hover:text-secondary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-sm">chat_bubble</span>
+<span class="text-[10px] font-label tabular-nums">84</span>
+</button>
+<button class="flex items-center gap-2 hover:text-tertiary transition-colors">
+<span class="material-symbols-outlined text-sm">cycle</span>
+<span class="text-[10px] font-label tabular-nums">312</span>
+</button>
+</div>
+</div>
+<!-- Feed Thread 2 (Image Focus) -->
+<div class="bg-surface-container-low/40 backdrop-blur-md p-6 border-l border-primary/20 hover:border-primary/60 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-8 h-8 border border-primary/40 overflow-hidden">
+<img class="w-full h-full object-cover grayscale" data-alt="Digital wireframe background with abstract neon lines and glitch patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuJD7yTuZKSX7rA_6DWCAx_3oHz7Fx54VcyCnSikyKajgE6RbgsKMKSXv1VajtnUfQ0Ti7u8RBqBwGWx8CIffkkaEExaPowukHRWECIgCSXufyJUi1jz7JazL29oZi55w8LPHAlaR8SejN-4_NJHybOpXNFXqPrwxA2oxDCswym96T8rruYO2W5jwHosAb5kAyaSmYTDqovZfKXS0p7FIeCPQmZ08FkNm8_18FFTWTOxvwZHiuimPpL0m4ntMvlZYGi167PjHCypk"/>
+</div>
+<div>
+<h4 class="text-xs font-headline text-primary">@null_pointer</h4>
+<p class="text-[9px] font-label text-slate-500">15m AGO // SEC_2</p>
+</div>
+</div>
+<div class="flex gap-1">
+<div class="w-1 h-1 bg-primary"></div>
+<div class="w-1 h-1 bg-primary/40"></div>
+<div class="w-1 h-1 bg-primary/10"></div>
+</div>
+</div>
+<p class="text-sm text-on-surface-variant font-light mb-4">
+                        Interface update complete. Implementing the <span class="text-secondary-fixed-dim">#EtherealTerminal</span> aesthetic across the main node. Feedback requested.
+                    </p>
+<div class="relative w-full h-48 border border-outline-variant/30 overflow-hidden group">
+<img class="w-full h-full object-cover grayscale opacity-60 group-hover:opacity-100 transition-opacity" data-alt="A futuristic UI interface displaying complex code fragments and data nodes with soft cyan backlighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoF_e7PbcSMIFlorkkHFl0aIeuVvWzvZqF-GK5ho6XQfkH2qV78TpKB6gbXzZHPg_is8SyLHbuPNhUbHfGoumLDZ6J2mxujfe21LtKb2mjyDduLOJN887Mie5z0EuBGrWt9YPzTSLoTntc_TDOY_v3mVRovZ-mzitruOjcwMrK6U7avn8MjXSa5ToVKba5AWm_yWveVBZhq_NcIHJl7rD05d1cMVmfGy6-4pw_miD_cUYXD-YfTDZX2BCQp_JdsgJyiSTMbEeHty4"/>
+<div class="absolute top-2 right-2 text-[8px] font-label bg-black/60 px-2 py-1 text-secondary-fixed-dim">IMG_SCRN_092</div>
+</div>
+<div class="flex gap-6 mt-6">
+<button class="flex items-center gap-2 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">favorite</span>
+<span class="text-[10px] font-label tabular-nums">429</span>
+</button>
+<button class="flex items-center gap-2 hover:text-secondary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-sm">chat_bubble</span>
+<span class="text-[10px] font-label tabular-nums">12</span>
+</button>
+</div>
+</div>
+<!-- Feed Thread 3 -->
+<div class="bg-surface-container-low/40 backdrop-blur-md p-6 border-l border-primary/20 hover:border-primary/60 transition-all">
+<div class="flex gap-3 mb-4">
+<div class="w-8 h-8 border border-slate-700"></div>
+<div class="flex-1">
+<div class="flex justify-between">
+<h4 class="text-xs font-headline text-slate-400">@vector_node</h4>
+<span class="text-[9px] font-label text-slate-500">42m AGO</span>
+</div>
+<p class="text-sm text-on-surface-variant/70 mt-2 font-light">
+<span class="text-tertiary">#CRYPTO</span> system overhaul incoming. Expect downtime in sector 9.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- HUD Flavor Elements -->
+<div class="absolute bottom-4 right-4 pointer-events-none text-[8px] font-label text-primary/20 space-y-1">
+<p>LATENCY: 14ms</p>
+<p>SYNC_RATE: 99.8%</p>
+<p>COORDS: 35.6895° N, 139.6917° E</p>
+</div>
+<div class="absolute top-20 left-4 pointer-events-none">
+<div class="w-px h-16 bg-gradient-to-b from-primary/60 to-transparent"></div>
+</div>
+</section>
+<!-- Right Column (Trending) -->
+<aside class="col-span-4 p-8 space-y-8 bg-surface-container-lowest/40 backdrop-blur-sm border-l border-outline-variant/10">
+<!-- Search / Data Query -->
+<div class="relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-full bg-primary/60"></div>
+<input class="w-full bg-surface-container/30 border-none pl-6 py-3 text-[10px] font-label tracking-widest focus:ring-0 placeholder:text-slate-600" placeholder="QUERY_THE_STREAM" type="text"/>
+</div>
+<!-- Trending Section -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-[10px] font-label tracking-[0.3em] text-slate-400">TRENDING_FRAGMENTS</h3>
+<span class="w-8 h-px bg-primary/20"></span>
+</div>
+<div class="space-y-4">
+<div class="group cursor-pointer">
+<p class="text-[10px] font-label text-primary/40 group-hover:text-primary transition-colors">01 // CRYPTO_PUNK</p>
+<h4 class="text-sm font-headline text-on-surface">THE_GODZILLA_PROTOCOL</h4>
+<p class="text-[9px] font-label text-slate-500 tabular-nums">42,912 THREADS</p>
+</div>
+<div class="group cursor-pointer">
+<p class="text-[10px] font-label text-primary/40 group-hover:text-primary transition-colors">02 // NETWORK</p>
+<h4 class="text-sm font-headline text-on-surface">LEO_FINANCE_v3</h4>
+<p class="text-[9px] font-label text-slate-500 tabular-nums">18,204 THREADS</p>
+</div>
+<div class="group cursor-pointer">
+<p class="text-[10px] font-label text-primary/40 group-hover:text-primary transition-colors">03 // INTEL</p>
+<h4 class="text-sm font-headline text-on-surface">HIVE_HARD_FORK_ETA</h4>
+<p class="text-[9px] font-label text-slate-500 tabular-nums">12,001 THREADS</p>
+</div>
+<div class="group cursor-pointer">
+<p class="text-[10px] font-label text-primary/40 group-hover:text-primary transition-colors">04 // CULTURE</p>
+<h4 class="text-sm font-headline text-on-surface">NEON_MINIMALISM</h4>
+<p class="text-[9px] font-label text-slate-500 tabular-nums">8,550 THREADS</p>
+</div>
+</div>
+</section>
+<!-- Suggested Hubs -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-[10px] font-label tracking-[0.3em] text-slate-400">SUGGESTED_NODES</h3>
+<span class="w-8 h-px bg-secondary-fixed-dim/20"></span>
+</div>
+<div class="space-y-6">
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 border border-outline-variant/30 overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover grayscale opacity-50 group-hover:opacity-100 transition-opacity" data-alt="Digital earth from space with glowing network lines in deep blue and white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdFdxoi7u1jLClV4PyQqGnVB2xcTKRH-qwXFyaTcsFWW6yR-8GImMx2MWoa5DyzNvtpohUwWgf7oZpraYj0Cjs5iuoHT_hAXEVga91MKjum7GMyACMZl6d4NisL89Z01lIadZpD73e6eTXQ3m0RvlXP6UUWCZrFsBYCGG2InhsOQhv6CMn4LdfV2BzaMwVXlqK85Fkt0RedSVyGbQe9BpaFehQ2LKW45YzdJwlqntqVSzkJBIDzjbhvmh9F1lpaIFe5NanXy1v0u0"/>
+</div>
+<div>
+<h4 class="text-xs font-headline text-on-surface">Global_News</h4>
+<p class="text-[9px] font-label text-slate-500">2.4M CONNECTED</p>
+</div>
+</div>
+<button class="text-[10px] font-label text-secondary-fixed-dim hover:glow-hover transition-all">LINK</button>
+</div>
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 border border-outline-variant/30 overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover grayscale opacity-50 group-hover:opacity-100 transition-opacity" data-alt="Microchip circuit board with glowing light trails and technical patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK83xw78Lp2J7-Rne5QSd56sUHOBuBVBaAKsq26Y-QRbj6YqOZVzEDPrNL31jBXXsLv8Vepl-eTWWacfVet1jUXpiRA3R7d0eyCAg0CYOpHTnBklSNSxW5VlWeOvtJtGObhoeHbtsxGXnrO71hIwBevW-ReIryKYFlny2ybjPbMY5kUu3ZMD2mXp10FnZ_rsUw1SX3IM-wPf4LWXh95XHSFTDpRdY4Z8aWsADmeySs2QG1ENmar7jrXujX_eDRZxGrVLDzsmi89a4"/>
+</div>
+<div>
+<h4 class="text-xs font-headline text-on-surface">Tech_Radar</h4>
+<p class="text-[9px] font-label text-slate-500">892K CONNECTED</p>
+</div>
+</div>
+<button class="text-[10px] font-label text-secondary-fixed-dim hover:glow-hover transition-all">LINK</button>
+</div>
+</div>
+</section>
+<!-- Bottom Terminal Status -->
+<div class="pt-8 border-t border-outline-variant/10">
+<div class="p-4 bg-surface-container-high/40 border-l border-primary/40 font-mono text-[9px] text-slate-500 leading-tight">
+<p class="text-primary/60 mb-1">SYS_REPORT_LOG:</p>
+<p>&gt; BUFFER_CLEARED</p>
+<p>&gt; HANDSHAKE_SUCCESSFUL</p>
+<p>&gt; ENCRYPTION_LAYERS: 128_BIT</p>
+</div>
+</div>
+</aside>
+</main>
+<!-- Visual Artifacts -->
+<div class="fixed top-0 right-0 w-32 h-32 border-r border-t border-primary/10 pointer-events-none"></div>
+<div class="fixed bottom-0 left-0 w-32 h-32 border-l border-b border-primary/10 pointer-events-none ml-64"></div>
+</body></html>

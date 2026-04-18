@@ -704,8 +704,513 @@ All Phase 5 UI changes were rechecked in **full Google Chrome** at desktop resol
 
 ---
 
+## Phase 6 — Codebase Stabilization, Modular Refactor, Composer Assistant, and Additional Skins
+
+Phase 6 is a **stabilization + expansion** phase. The extension has outgrown its original "small theme extension" file structure and now bundles theme loading, SPA stylesheet persistence, editor tweaks, market ticker, settings injection, user detection, a mute system, avatar styling, wallet route interception, a full wallet subsystem (RPC + Hive Engine + caching + rendering), modal handling, and an options UI — almost all of which lives inside two monolithic runtime scripts (`content.js` and `wallet.js`).
+
+This phase has three tracks:
+
+1. **Stabilize & modularize** the existing product without changing its behavior.
+2. **Ship the first creator-side utility**: a composer hashtag assistant.
+3. **Grow the skin library** with two additional themes (Gday, Gday v2).
+
+> The full product-review write-up that motivates this phase is preserved in `debug/PHASE6.md`. This section is the authoritative implementation plan for the repo.
+
+**Current repo status (Phase 6 snapshot):**
+- The repo now contains the `core/`, `features/`, `wallet/`, `styles/`, `data/`, and additional `themes/` structure described in this phase.
+- `content.js` is currently a thin bootstrap that wires together theme application, route subscriptions, the 3-second SPA watchdog, and `muteFeed` startup / re-attach behavior.
+- `features/muteFeed.js` now handles both user muting and phrase muting (`mutedPhrases` in `chrome.storage.sync`), including hiding command-style threads such as `/rafiki spin` without muting the posting account.
+
+### 6.1 Architecture Review — What Phase 6 Set Out To Fix
+
+**`content.js` was doing too many unrelated jobs.** Before the refactor it combined:
+- theme application + `adoptedStyleSheets` persistence
+- `@import`-stripped font link injection
+- CoinGecko market-ticker fetching, rendering, and placement
+- DOM maintenance polling (3s heartbeat)
+- settings-link injection after Profile
+- muted-user storage sync
+- feed processing + mute button injection
+- popup / hover-card detection
+- avatar self/other highlighting
+- MutationObserver lifecycle + fallback re-attach
+- editor toolbar CSS tweaks
+
+**`wallet.js` was a full subsystem** (route interception, lifecycle, inline CSS template, HTML render, RPC client, cache access, account data transformation, Hive Engine token retrieval, totals math, modal, direct-route bootstrap).
+
+**Other drift that Phase 6 targeted:**
+- `popup.html` still shows `v1.0` while `manifest.json` is `1.1`
+- `README.md` still reads like a theme-only extension
+- storage usage is split between `chrome.storage.sync` and `chrome.storage.local` with no central schema
+- wallet cache is a single key — it overwrites when viewing a different user
+- wallet CSS is a giant template string inside `wallet.js`
+- route handling relies on click interception + initial path check, with no explicit controller
+
+### 6.2 Goal A — Clean Up Without Changing Product Identity
+
+Preserve existing behavior while making the code safe to extend.
+
+**Target structure:**
+
+```text
+inleo-skin/
+  manifest.json
+  background.js
+  popup.html / popup.js / popup.css
+  options.html / options.js
+
+  core/
+    state.js          # shared mutable state (currentThemeSheet, currentUser, etc.)
+    storage.js        # STORAGE_KEYS + DEFAULTS + TTLs
+    utils.js          # normalizeSidebarLabel, getNavItemContainer, etc.
+    logger.js         # DEBUG flag + `log(scope, ...args)`
+    scheduler.js      # scheduleProcessFeed + scheduleSidebarCleanup
+    routeController.js # SPA route change detection + subscriber pattern
+
+  features/
+    slateBridge.js    # Main-world bridge for Slate.js editor access (world: "MAIN")
+    theme.js          # applyTheme + adoptedStyleSheets lifecycle
+    editorTweaks.js   # hide Heading / Italic / Upload Short
+    marketTicker.js   # ticker injection + CoinGecko fetch + 30-min cache
+    currentUser.js    # detects logged-in username from sidebar Profile link
+    settingsLink.js   # inject Settings after Profile
+    sidebarCleanup.js # hides unwanted left-nav and right-rail items
+    muteFeed.js       # mutedUsers + mutedPhrases + processFeed + injectMuteButton + observer lifecycle
+    avatarMarkers.js  # self/other avatar classes
+    composerHashtags.js   # hashtag suggestion strip (SwiftKey-style)
+
+  wallet/
+    walletRoute.js    # explicit route controller (pushState/replaceState/popstate)
+    walletApi.js      # Hive RPC client + Hive Engine fetch helpers
+    walletCache.js    # per-user cache map with LRU cap of 10
+    walletView.js     # wallet HTML template + mount/unmount
+    walletRender.js   # data binding (renderAccount, renderHiveEngineTokens)
+    walletModal.js    # delegation details modal
+    walletStyles.js   # lazy-loads styles/wallet.css
+
+  styles/
+    wallet.css        # externalized wallet CSS
+
+  data/
+    hashtagEntities.js    # entity-to-tag map (Hive, crypto, movies, entertainment, etc.)
+    hashtagRules.js       # scoring engine: entity sweep + word extraction + weights
+
+  themes/
+    cyberpunk-v2.css
+    gday.css              # NEW — Ethereal Terminal
+    gday-v2.css           # NEW — Surveillance OS
+```
+
+**Manifest cleanup:** `manifest.json` loads scripts in two content-script entries:
+
+1. **Main-world bridge** (`world: "MAIN"`, `run_at: "document_start"`):
+   - `features/slateBridge.js` — runs in the page's JS context so it can access React/Slate internals
+
+2. **Isolated-world content scripts** (default world, `run_at: "document_start"`):
+   - `core/` → `data/` → `features/` → `wallet.js` → `wallet/` → `content.js` (bootstrap, loaded last)
+
+ES modules are not used; plain IIFE files ordered by the manifest are the convention.
+
+**Central storage schema** (single source of truth, matching `core/storage.js`):
+
+```js
+const SYNC_KEYS = {
+  activeTheme: 'activeTheme',
+  hiveApiNode: 'hiveApiNode',
+  hashtagSettings: 'hashtagSettings',
+  mutedPhrases: 'mutedPhrases'
+};
+
+const LOCAL_KEYS = {
+  mutedUsers: 'mutedUsers',
+  currentUser: 'inleo_current_user',
+  marketCache: 'inleo_market_data_cache',
+  walletCache: 'inleo_wallet_data_cache_v2',
+  walletCacheLegacy: 'inleo_wallet_data_cache'
+};
+
+const DEFAULTS = {
+  activeTheme: 'none',
+  hiveApiNode: 'https://api.deathwing.me',
+  hashtagSettings: {
+    enabled: true,
+    maxTags: 5,
+    alwaysInclude: ['leofinance'],
+    blockedTags: []
+  },
+  mutedUsers: [],
+  mutedPhrases: ['/rafiki']
+};
+```
+
+In the current implementation, `mutedUsers` stays in local storage while `mutedPhrases` lives in sync storage, so phrase-based hiding such as `/rafiki` command filtering follows the user's Chrome profile without fully muting the author.
+
+**Route & async safety (wallet):**
+- add a small route controller watching `pushState`, `replaceState`, `popstate`, and a pathname fallback
+- add a render-token pattern so stale async wallet responses are discarded when the user has since navigated to another account
+
+**Wallet cache upgrade:** migrate from one cache object to a per-user map keyed by username. Account-switching then feels cached and clean instead of overwriting a single slot.
+
+**Wallet CSS externalization:** move the `wallet.js` CSS template string into `styles/wallet.css`. Load it through `adoptedStyleSheets` for the same SPA resilience as theme CSS.
+
+**Documentation & UI refresh:**
+- bump popup version label from `v1.0` to match `manifest.json`
+- align popup + options copy with the current product (theme + wallet + hashtag assistant)
+- update `README.md` to describe the full product
+- add a short architecture section describing the new module layout
+
+**Lightweight guardrails:**
+
+```js
+const DEBUG = false;
+function log(scope, ...args) {
+  if (DEBUG) console.log(`[Inleo Skins:${scope}]`, ...args);
+}
+```
+
+Plus idempotent DOM injection checks and clear subsystem boundaries.
+
+### 6.3 Goal B — Composer Hashtag Assistant (v2 — SwiftKey-Style Suggestion Strip)
+
+Turn the extension into the start of a creator-side toolkit. Suggestions only — **no auto-insert, no auto-post, no external AI**.
+
+> **Design analogy:** Microsoft SwiftKey's word suggestion strip — a compact, single-row bar that sits between the input area and the toolbar. Tags never enter the post unless the user explicitly clicks them.
+
+**Scope:** Threads composer only (the short-post editor on the home feed). The `/publish` long-form article editor is **out of scope** for v1 to keep detection simple and prevent accidental side-effects.
+
+**Strip placement:**
+- The suggestion strip renders **between the contenteditable text area and the formatting toolbar** (B / I / quote / image buttons).
+- It is a single row with `overflow: hidden` — tags that don't fit are simply not shown. No wrapping, no scrolling.
+
+**Strip layout:**
+- **Left section**: always-include tags (configured in Options, e.g. `SKIPTVADSTHREAD`). These appear from the moment the composer mounts, before the user types anything.
+- **Small gap** (visual separator, not a divider line).
+- **Right section**: contextual suggestions generated by the rule-based scoring engine as the user types.
+
+**Chip behavior — click to append:**
+- Clicking a chip **appends** `#TAG` to the **very end** of the post text, regardless of cursor position.
+- **Comma separation**: the first hashtag is appended with a space (` #TAG`); subsequent hashtags are separated by ` , ` (e.g. `#MOVIESONLEO , #SKIPTVADSTHREAD , #REVIEW`).
+- The chip **disappears** from the strip immediately after click (not greyed out, not struck-through — fully removed).
+- The user can continue typing normally; the appended tag sits at the end.
+
+**Casing:**
+- All tags render in **UPPERCASE** in both the chip and the appended text (e.g. `#SKIPTVADSTHREAD`, `#MOVIESONLEO`, `#BITCOIN`).
+- The composer text input itself respects the user's keyboard — no forced uppercase on typed text (even in Gday v2 which uses uppercase globally, the `markdown-editor` is explicitly exempted).
+
+**Dedupe — strip reflects what's NOT in the text:**
+- If a tag is already present in the post body (whether appended by click or typed manually by the user), it does **not** appear in the strip.
+- If the user **backspaces/deletes** a previously appended tag from the text, the tag **reappears** in the strip.
+- The strip is a live mirror: it always shows tags that are relevant but not yet in the post.
+
+**Post/reset:**
+- After publishing a thread (or when the composer is cleared/re-mounted by Inleo), the strip fully resets: always-include tags reappear, contextual suggestions clear.
+
+**Empty state:**
+- When there are zero suggestions (no always-include tags remaining, no contextual matches), the strip **hides entirely** — no placeholder, no "keep typing" text, no visual clutter.
+
+**Theming:**
+- The strip adapts to the active skin: cyan chips on Cyberpunk V2, purple on Gday, orange on Gday v2, neutral/default when no theme is active.
+
+**Example flow:**
+
+1. User opens composer. Strip shows: `#LEOFINANCE` (always-include, left side).
+2. User types: `my last movie review`. Strip updates: `#LEOFINANCE` | gap | `#MOVIESONLEO` `#REVIEW` `#MOVIE` (entity matches + word extraction).
+3. User clicks `#LEOFINANCE`. Text becomes: `my last movie review #LEOFINANCE`. Strip updates: remaining chips (`LEOFINANCE` gone).
+4. User clicks `#MOVIESONLEO`. Text becomes: `my last movie review #LEOFINANCE , #MOVIESONLEO`. Strip updates accordingly.
+5. User clicks `#REVIEW`. Text becomes: `my last movie review #LEOFINANCE , #MOVIESONLEO , #REVIEW`. Note the comma separation between hashtags.
+6. User keeps typing: appends ` it was about bitcoin`. Strip reappears: `#BITCOIN` | `#CRYPTO` | `#BTC`.
+7. User deletes `#REVIEW` from text by backspacing. Strip updates: `#REVIEW` reappears alongside the bitcoin-related chips.
+
+**Scoring engine** (`data/hashtagRules.js`) — two-layer system:
+
+*Layer 1 — Entity matching (high priority):*
+- Deterministic, local, rule-based. No AI, no network.
+- Entity map in `data/hashtagEntities.js` maps mentions to candidate tags (Hive ecosystem, crypto majors, movies/film/TV, books, podcasts, content genres).
+- Per-entity weight: primary tag = 10pts, secondary = 4pts, tertiary = 2pts.
+- Occurrences capped at 4 per entity to prevent spam skewing.
+- Explicit `#tag` in text = 25pt bonus (but since it's in the text, it's deduped out of the strip).
+- Always-include tags scored at 10pts with source `"pinned"`.
+- Blocked tags (from Options) dropped entirely before ranking.
+
+*Layer 2 — Word extraction (lower priority):*
+- Tokenizes the post text and extracts significant words (3+ characters) as potential hashtag suggestions.
+- Filters out English stop words (~150 common words like "the", "and", "about", "just", etc.) and pure numbers.
+- Words already matched by entity scoring are skipped (no duplicates).
+- Weight: 3pts per word (much lower than entity matches, so curated entities always rank higher).
+- Capped at 8 word-extracted tags per post.
+- Examples: typing "Matrix" suggests `#matrix`, typing "cinema" suggests `#cinema`, typing "resistance" suggests `#resistance`.
+- This layer ensures the strip always has something useful to suggest, even for niche topics not in the entity map.
+
+**Slate.js bridge architecture** (`features/slateBridge.js`):
+
+Inleo's threads composer uses **Slate.js**, not a plain contenteditable. Slate maintains its own internal document model — DOM mutations (e.g. `document.execCommand`) are overwritten on the next React re-render and are not included when the post is published. The extension must use Slate's API (`editor.insertText()`) to modify the post text.
+
+The challenge: content scripts run in Chrome's **isolated world** and cannot access React fiber properties (`__reactFiber*`) or Slate editor instances on DOM elements — those exist only in the **page's main world**.
+
+Solution: a two-script bridge pattern:
+1. `features/slateBridge.js` is loaded with `world: "MAIN"` in the manifest. It runs in the page's JS context, can access React internals, and listens for commands via `window.postMessage`.
+2. `features/composerHashtags.js` (isolated world) sends commands like `{ type: "inleo-slate-request", cmd: "insertText", selector: "...", text: "..." }` via `window.postMessage` and receives responses on `{ type: "inleo-slate-response", ... }`.
+3. Each request carries a unique `reqId` for response matching. A 500ms timeout falls back to `execCommand` if the bridge is unreachable.
+
+Supported bridge commands:
+- `getText` — reads the full text from Slate's internal model (source of truth for dedupe)
+- `insertText` — moves Slate's selection to the document end and calls `editor.insertText()`, which updates the model + React state + DOM atomically
+
+This architecture ensures appended hashtags:
+- Survive React re-renders ✓
+- Appear in the prose preview (Slate → React → render) ✓
+- Are included when the post is published ✓
+- Can be deleted by the user with normal backspace ✓
+
+**Composer detection:**
+- Targets `main [contenteditable="true"]` with class `markdown-editor` and `data-slate-editor` attribute (Inleo's threads composer).
+- Width >= 200px required (filters search boxes).
+- Height check relaxed for `markdown-editor` elements (Inleo's composer starts at ~24px tall).
+- Excludes popups, tooltips, nav elements.
+- Uses `data-slate-editor-id` attribute as a unique selector for bridge communication.
+
+**SPA resilience:**
+- Re-scans for new composers on every route change via `NS.route.subscribe`.
+- A 2-second deadman-check per attached composer detects DOM removal and cleans up.
+- If the strip is wiped by a React re-render, the deadman check re-inserts it.
+- The prose preview sibling is watched via `MutationObserver` as a secondary change signal (Slate/React updates it when the model changes).
+- No persistent MutationObserver for composer detection — periodic rescan is cheaper and more predictable.
+
+**Settings (in `options.html` / `options.js`, persisted via `STORAGE_KEYS.hashtagSettings`):**
+- Enable/disable hashtag suggestions (default: enabled)
+- Max suggested tags per strip (default: 5, range: 1–15)
+- Always-include tag list (comma-separated, default: `leofinance`)
+- Blocked tag list (comma-separated, default: empty)
+
+**Data files:**
+- `data/hashtagEntities.js` — hand-curated entity-to-tag map (Hive ecosystem, crypto majors, movies/film/TV, books, podcasts, content genres)
+- `data/hashtagRules.js` — two-layer scoring engine: entity sweep + word extraction, weight fan-out, stop-word filtering, always-include/blocked filtering, sorted output
+
+**Feature files:**
+- `features/slateBridge.js` — main-world bridge for Slate.js access (React fiber traversal, `getText`, `insertText`)
+- `features/composerHashtags.js` — composer detection, strip DOM construction, chip rendering, click-to-append via Slate bridge, comma-separated formatting, live dedupe from Slate model, theming, SPA lifecycle
+
+**Edge cases explicitly handled:**
+- Tag already in draft (typed or appended) → hidden from strip (dedupe reads from Slate model)
+- Deleted tag → reappears in strip (Slate model change triggers recompute via input event + prose observer)
+- Multiple suggestions mapping to same tag → deduped by scoring engine
+- Composer re-mounted by SPA → strip re-attaches via deadman check
+- Strip wiped by React re-render → deadman check re-inserts it
+- Empty text with always-include → strip shows only pinned tags
+- All tags used → strip hides entirely (`data-empty="1"` → `display: none`)
+- Rapid typing → 400ms debounce prevents excessive recalculation
+- Slate bridge unavailable → graceful fallback to `execCommand`
+- Bridge timeout (500ms) → resolves with error, falls back silently
+- Word-extracted tags that overlap with entity-matched tags → skipped (no duplicates)
+- Niche topics not in entity map → word extraction ensures useful suggestions
+- First hashtag vs. subsequent → automatic comma separator detection via regex
+
+### 6.3b Content-Based Phrase Filtering (Muted Phrases)
+
+A companion to the user-mute system. Users can define text patterns (one per line) that hide matching posts **without muting the posting account**. The primary use case: Inleo's `/rafiki spin` game command floods the feed with low-value threads from otherwise-followed users.
+
+**Design decision — phrase filter vs. user mute:**
+- User mute hides **all** posts from an account (class `.inleo-muted-post`, stored in `chrome.storage.local`).
+- Phrase mute hides only **matching** posts (class `.inleo-phrase-muted`, stored in `chrome.storage.sync` so it follows the Chrome profile).
+- Both systems coexist in `features/muteFeed.js`. User-muted posts take priority — if a post is already hidden by user mute, phrase matching is skipped for that row.
+
+**Architecture (`features/muteFeed.js`):**
+
+The file was refactored with extracted helper functions for clarity and reuse:
+
+| Helper | Purpose |
+|--------|---------|
+| `getPrimaryProfileLinks(feedArea)` | Returns `a[href^="/profile/"]` links filtered to bold name links only (no avatars, no @mentions, no popup cards) |
+| `getUsernameFromLink(link)` | Extracts lowercase username from a profile link's `href` |
+| `getPostOuterWrapper(link)` | Walks up the DOM from a profile link to find the outermost thread row container (`.relative.min-h-px` or `cursor-pointer` parent) |
+
+The `processFeed()` function runs five steps in order:
+
+1. **Unhide** — removes `.inleo-muted-post` from posts whose user is no longer in the muted list.
+2. **Orphan cleanup** — removes stale mute buttons without wrappers (leftover from React reconciliation).
+3. **User muting pass** — walks profile links, hides muted users (`classList.add('inleo-muted-post')`), injects `[ mute ]` buttons for non-muted users.
+4. **Phrase filtering pass** — iterates the same profile links with a `seenPhraseTargets` Set to dedupe. For each unique thread row:
+   - Skips posts already hidden by user mute.
+   - Reads `outer.textContent` (full thread row text, not just `<p>` body) so command-only posts like `/rafiki spin` are detected even if Inleo changes its body markup.
+   - Compares against `mutedPhrases` array (all lowercased). If any phrase matches, adds `.inleo-phrase-muted`.
+   - If no phrase matches, removes `.inleo-phrase-muted` (handles phrase list edits).
+   - When the phrase list is empty, clears all stale `.inleo-phrase-muted` classes.
+5. **Avatar markers** — piggy-backs on the same feed tick to avoid an extra full-page scan.
+
+**Base CSS injection:**
+
+`muteFeed.js` creates a `CSSStyleSheet` via `document.adoptedStyleSheets` to guarantee hiding works even when no theme is active:
+
+```css
+.inleo-muted-post,
+.inleo-phrase-muted {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+```
+
+This is SPA-safe — `adoptedStyleSheets` survive React re-renders and SPA navigation.
+
+**Theme CSS updates:**
+
+All three themes (`cyberpunk-v2.css`, `gday.css`, `gday-v2.css`) include `.inleo-phrase-muted` alongside `.inleo-muted-post` in their hide rules for redundancy.
+
+**Storage & live sync:**
+
+- `mutedPhrases` defaults to `['/rafiki']` and lives in `chrome.storage.sync` (key documented in `core/storage.js`).
+- `loadInitial()` waits for both `mutedUsers` (local) and `mutedPhrases` (sync) to load before the first `processFeed()` call (barrier pattern with `pendingLoads` counter).
+- `chrome.storage.onChanged` listener watches both areas: `mutedUsers` changes in `local`, `mutedPhrases` changes in `sync` — each triggers an immediate `processFeed()` via the scheduler.
+- This means edits in the Options page take effect instantly in the feed without requiring a page reload.
+
+**Options UI (`options.html` / `options.js`):**
+
+- Added a "Muted Phrases" section between "Muted Users" and "Wallet Settings".
+- A `<textarea>` accepts one phrase per line (e.g. `/rafiki` on line 1, `another phrase` on line 2).
+- Hint text explains the behavior: *"Hide posts containing these phrases — one per line. The user is NOT muted, just the matching post. Case-insensitive."*
+- Auto-saves with a 400ms debounce on `input` / `change` events.
+- Phrases are lowercased, trimmed, and empty lines are filtered before persisting.
+- A "Saved" indicator flashes briefly after each save.
+
+**MutationObserver integration:**
+
+The feed observer in `muteFeed.js` triggers `processFeed()` (via the scheduler, 150ms debounce) on any relevant DOM mutation. It ignores:
+- Its own mutations (re-entrancy guard via `state._isProcessingFeed`)
+- Text-only nodes (`nodeType !== 1`)
+- Wrapper elements it created (`.inleo-mute-wrapper`)
+
+The observer also triggers `sidebarCleanup` for the sidebar hiding feature on the same mutation.
+
+### 6.4 Goal C — New Skins: Gday and Gday v2
+
+Two new themes landing in this phase, both running on the same Cyberpunk V2 infrastructure (CSS file under `themes/`, `:root[data-inleo-skin="..."]` scope, `adoptedStyleSheets` persistence, SPA resilience via `applyTheme`).
+
+#### Gday — "Ethereal Terminal" / Neon-Minimalist HUD
+
+Source: `debug/inleo_gday/` (design system documented in `DESIGN.md`).
+
+- **Palette:** deep blue surface (`#0d1321`) punctuated by neon purple `#ecb2ff` + hard cyan `#00dbe9`, purple-container `#bd00ff`
+- **Typography:** `Space Grotesk` for headlines/labels (uppercase, letter-spacing `0.05rem`), `Inter` for body. Numerical data uses `tabular-nums`.
+- **Surface logic:** tonal shifts between `surface` → `surface-container-low` → `surface-container-highest`. Boundaries are **hairline accents**, never 1px solid borders. Glassmorphism (60% opacity + `backdrop-filter: blur(12px)`) on floating elements.
+- **Accents:** single corner-bracket in the **top-right** of cards using a thin primary hairline (the "HUD projection" effect from `DESIGN.md`).
+- **No rounded corners anywhere.**
+- **Composer emphasis:** a 2px left border in primary + TR corner bracket, matching the "Initialize Thread" composer in `inleo_gday/code.html`.
+- **Logo:** replaced with a `Material Symbols` `hub` glyph + `NEURAL_LINK` wordmark in primary.
+- **Ticker:** restyled as a `DATA_HUD` block — subtle hairline left border + TR corner accent.
+
+#### Gday v2 — Industrial Surveillance OS
+
+Source: `debug/inleo_gday2/`.
+
+- **Palette:** near-black base (`#0a0a0a` body, `#121212` panel, `#1a1a1b` gritty grey), **industrial orange** `#d35400` primary, **industrial red** `#922b21` as alarm/mute accent
+- **Typography:** `Black Ops One` stencil for headlines/brand, `Barlow Condensed` for everything else. Body text is globally `text-transform: uppercase` for the HUD feel, with post-body `<p>` kept mixed-case for readability.
+- **Surface logic:** hard rectangular cards with thin 1px hairlines and a gritty near-black interior. No glassmorphism — this theme is grainy and industrial, not ethereal.
+- **Accents:** corner brackets at **top-left AND bottom-right** of every card in primary orange. Scanline + grain overlay on `body::before` for a CCTV-feed feel.
+- **Hover:** primary buttons invert to solid orange background + black text.
+- **No rounded corners anywhere.**
+- **Logo:** `Material Symbols` `radar` glyph + `SEC_NODE_01` stencil wordmark.
+- **Ticker:** restyled as a `SYS_REPORT` block — hard left orange border, stencil title, tabular numerics.
+
+#### Integration details (shared by both skins)
+
+- Registered in the popup dropdown (`popup.html`) as **"Gday"** (`gday`) and **"Gday v2"** (`gday-v2`).
+- Themes consume the existing `applyTheme` pipeline — no new loading code, no new permissions, no bundler.
+- `content.js` defines a `TICKER_THEMES` set (`cyberpunk-v2`, `gday`, `gday-v2`) so the sidebar Market Data ticker is opt-in per theme. Each theme's CSS restyles `#cyber-price-ticker` to match its aesthetic (neon HUD for Gday, stencil `SYS_REPORT` for Gday v2).
+- `setInterval` SPA-persistence watchdog and the initial `applyTheme` call both route through `themeUsesTicker()` so switching between themes reliably tears the ticker down and rebuilds it.
+- All sidebar hiding, article-filter layout fixes, publish dropdown styling, mute button styling, avatar self/other outlines, radix dropdown fixes, and `body.inleo-wallet-page` / `body.inleo-articles-page` scoped rules from Cyberpunk V2 are carried across into both new themes so feature parity is maintained.
+
+### 6.5 Recommended Implementation Order
+
+1. **Cleanup foundation** — create `core/` + `features/`, centralize storage keys/defaults, split `content.js`, split `wallet.js`, move wallet CSS into `styles/wallet.css`, keep behavior unchanged.
+2. **Reliability pass** — wallet route controller, stale-request guards, per-user wallet cache, popup/options/docs alignment.
+3. **Composer assistant v1** — detect composer, parse content, score hashtags, render chips, insert tags.
+4. **Settings integration** — wire hashtag options into `options.html`, persist under central schema, support always-on + blocked lists.
+5. **Skin expansion** — `themes/gday.css` + `themes/gday-v2.css`, register in `popup.html`, extend `TICKER_THEMES` so both participate in the ticker lifecycle.
+6. **Feed filtering** — phrase-based content filtering (`mutedPhrases`) in `muteFeed.js`, Options UI for phrase management, live sync via `chrome.storage.onChanged`.
+7. **Final polish** — insertion dedupe, SPA-resilience validation, cross-route / editor-rerender testing.
+
+### 6.6 Definition of Done
+
+**Refactor / cleanup**
+- `content.js` is no longer a single monolith
+- `wallet.js` is split into logical modules
+- wallet CSS is externalized to `styles/wallet.css`
+- storage keys/defaults are centralized
+- popup/options/docs are aligned with the current product
+- wallet routing is more explicit and safer under async changes
+
+**Mute / phrase filtering**
+- `features/muteFeed.js` owns both user muting and phrase muting
+- `mutedUsers` load from local storage and `mutedPhrases` load from sync storage before the first feed pass runs
+- phrase muting hides matching thread rows without muting the posting user
+- phrase matching uses the resolved thread row text, so command posts like `/rafiki spin` are hidden even if Inleo changes the internal body markup away from simple `<p>` tags
+- removing muted phrases clears any stale `.inleo-phrase-muted` classes on previously hidden posts
+
+**Hashtag assistant (v2 — SwiftKey-style strip)**
+- suggestion strip renders between the text area and the toolbar (not below the composer)
+- always-include tags appear on the left; contextual suggestions on the right with a visual gap
+- strip is a single row with overflow hidden — no wrapping, no scrolling
+- all tags render in UPPERCASE (chips and appended text)
+- clicking a chip appends `#TAG` to the end of the post text and removes the chip from the strip
+- hashtags are comma-separated when multiple are appended (e.g. `#MOVIESONLEO , #REVIEW , #BITCOIN`)
+- text insertion uses Slate.js API via main-world bridge — tags persist through React re-renders and are included in published posts
+- the Slate bridge (`slateBridge.js`) runs in `world: "MAIN"` and communicates via `window.postMessage`
+- `recompute()` reads text from Slate's internal model (source of truth), not from DOM `innerText`
+- tags already in the post body (typed or appended) are hidden from the strip (live dedupe from Slate model)
+- deleting a tag from the text causes it to reappear in the strip
+- publishing or clearing the composer fully resets the strip
+- strip hides entirely when no suggestions remain
+- strip adapts to the active theme (cyberpunk cyan, gday purple, gday-v2 orange, default neutral)
+- scoped to the threads composer only (not the /publish long-form editor)
+- two-layer suggestion system: entity matches (high priority) + word extraction from typed text (lower priority)
+- word extraction filters stop words, pure numbers, and words already covered by entities
+- suggestions update while typing (400ms debounce)
+- `#LEOFINANCE` (and other always-include tags) can be configured via Options
+- entity/topic tags generated by deterministic, local rules — no AI, no network
+- feature survives Inleo SPA re-renders and composer re-mounts
+
+**Theme fixes**
+- Gday v2 composer editor exempted from global `text-transform: uppercase` — user's typing respects their keyboard
+- Prose preview and post body paragraphs also exempted from uppercase in Gday v2
+
+**Skins**
+- Gday and Gday v2 are selectable from the popup dropdown
+- both themes load via the existing `adoptedStyleSheets` pipeline
+- both themes honor the data-attribute `:root[data-inleo-skin="..."]` scoping
+- the market ticker renders for both themes (via `TICKER_THEMES`) and is styled consistently with each theme
+- all Cyberpunk V2 behavioral CSS (sidebar hides, article layout, publish dropdown, mute, wallet-page scoping, avatar outlines) has parity in both new themes
+
+### 6.7 Non-Goals for Phase 6
+
+These are explicitly out of scope for this phase unless time remains after Definition of Done:
+
+- AI-based hashtag generation
+- automatic posting
+- full writing assistant (tone, grammar, rewrites)
+- sentiment analysis
+- server-side syncing
+- analytics dashboard
+- major wallet redesign beyond structural cleanup
+
+### 6.8 Implementation Rules (Notes for Future Work)
+
+When continuing Phase 6 work:
+
+1. **Do not rewrite the whole extension from scratch.** Preserve working behavior; refactor incrementally.
+2. **Keep runtime logic modular** — each feature should expose an `init()` or similarly clear entry point.
+3. **Prefer deterministic logic for hashtags** — no AI dependency in Phase 6.
+4. **Do not silently auto-insert hashtags** — suggestions must be user-controlled.
+5. **Avoid introducing bundlers unless truly necessary** — plain Chrome extension files are fine.
+6. **Keep all DOM injections idempotent** — no duplicate chips, duplicate containers, or duplicate listeners.
+7. **Preserve SPA resilience** — any new feature must survive route and DOM re-render behavior on Inleo.
+
+---
+
 ## Future Phases
 
 - **Performance**: Monitor the performance impact of high-specificity CSS selectors and the `MutationObserver` on extremely long threads.
 - **Maintenance**: Regular updates to CSS selectors will be required if `inleo.io` fundamentally changes its DOM structure or Tailwind configuration.
-- **New Themes**: Use `cyberpunk-v2.css` as the reference template. Copy the entire nav section (sections 6–6d) as a starting point and modify only colors/fonts.
+- **New Themes**: Use `cyberpunk-v2.css` as the reference template. Copy the entire nav section (sections 6–6d) as a starting point and modify only colors/fonts. `themes/gday.css` and `themes/gday-v2.css` are working examples of this approach.

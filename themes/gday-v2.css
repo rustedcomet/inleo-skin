@@ -1,24 +1,38 @@
-/* themes/cyberpunk-v2.css — Precision port of stitch/code.html */
+/* themes/gday-v2.css — Port of debug/inleo_gday2 (Surveillance OS / Industrial)
+
+   Signature look:
+     - Gritty, grainy, near-black base (#0a0a0a / #121212)
+     - Industrial orange (#d35400) primary, industrial red (#922b21) alarm accent
+     - Stencil display type (Black Ops One), condensed body (Barlow Condensed)
+     - UPPERCASE everywhere for that HUD feel
+     - Hard rectangular cards with thin hairline borders
+     - Subtle CCTV-style scanlines + grain overlay
+     - Sharp corner-bracket accents (top-left AND bottom-right)
+*/
 
 /* =========================================================
    FONTS
    ========================================================= */
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 /* =========================================================
-   CSS VARIABLES — Taken directly from code.html
+   CSS VARIABLES
    ========================================================= */
-:root[data-inleo-skin="cyberpunk-v2"] {
-    --primary: #00f3ff;
-    --secondary: #ff2a00;
-    --accent: #9d00ff;
-    --bg-dark: #050508;
-    --panel-bg: #0a0a12;
+:root[data-inleo-skin="gday-v2"] {
+    --primary: #d35400;            /* industrial orange */
+    --primary-hot: #ff6a14;
+    --secondary: #922b21;          /* industrial red */
+    --bg-dark: #0a0a0a;
+    --panel-bg: #121212;
+    --gritty-grey: #1a1a1b;
+    --outline: #404040;
+    --on-surface: #a6a6a6;
+    --on-surface-variant: #808080;
 }
 
 /* =========================================================
-   0. NUCLEAR RESET — Kill ALL rounded corners site-wide
+   0. NUCLEAR RESET — zero rounding everywhere
    ========================================================= */
 *,
 *::before,
@@ -27,26 +41,25 @@
 }
 
 /* =========================================================
-   1. BODY — Background from code.html body styles
+   1. BODY — deep black, uppercase industrial feel
    ========================================================= */
 body {
     background-color: var(--bg-dark) !important;
     background-image:
-        radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.05) 0%, transparent 70%),
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)) !important;
-    background-size: 100% 100%, 100% 4px, 3px 100% !important;
-    /* PERF: background-attachment:fixed causes full repaint every scroll frame.
-       Use background-attachment:scroll instead — the gradient is subtle enough
-       that the visual difference is negligible. */
+        radial-gradient(circle at 50% 30%, rgba(211, 84, 0, 0.04) 0%, transparent 55%),
+        linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.35) 50%),
+        linear-gradient(90deg, rgba(211, 84, 0, 0.02), rgba(0, 0, 0, 0), rgba(146, 43, 33, 0.02)) !important;
+    background-size: 100% 100%, 100% 2px, 3px 100% !important;
     background-attachment: scroll !important;
-    font-family: "Rajdhani", sans-serif !important;
-    color: #ffffff !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    color: var(--on-surface) !important;
     overflow-x: hidden !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
 }
 
 /* =========================================================
-   2. SCANLINES OVERLAY — from code.html .scanlines::before
+   2. SURVEILLANCE GRAIN + SCANLINES OVERLAY
    ========================================================= */
 body::before {
     content: " " !important;
@@ -57,31 +70,26 @@ body::before {
     bottom: 0 !important;
     right: 0 !important;
     background:
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)) !important;
-    background-size: 100% 2px, 3px 100% !important;
+        linear-gradient(to bottom, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.4) 50%),
+        repeating-linear-gradient(
+            0deg,
+            rgba(255, 255, 255, 0.015) 0,
+            rgba(255, 255, 255, 0.015) 1px,
+            transparent 1px,
+            transparent 3px
+        ) !important;
+    background-size: 100% 2px, 100% 100% !important;
     z-index: 9998 !important;
     pointer-events: none !important;
-    /* PERF: Promote to own GPU compositing layer so it doesn't
-       force main-thread repaints during scroll */
     will-change: transform !important;
     transform: translateZ(0) !important;
+    opacity: 0.55 !important;
 }
 
-/* =========================================================
-   3. GODZILLA BG — REMOVED
-   The fixed 600x600 element was causing a visible gray square
-   behind any transparent content (images, expanded comments,
-   publish page). Removing entirely for a clean dark aesthetic.
-   ========================================================= */
-body::after {
-    display: none !important;
-}
+body::after { display: none !important; }
 
 /* =========================================================
-   3b. GLOBAL GRAY BACKGROUND KILL
-   Inleo uses bg-zinc-800, bg-gray-200, bg-neutral-800 etc.
-   These all render as visible gray squares. Kill them ALL.
+   3. GLOBAL GRAY-UTILITY KILL — match panel color
    ========================================================= */
 [class*="bg-zinc"],
 [class*="bg-gray"],
@@ -94,81 +102,55 @@ body::after {
 }
 
 /* =========================================================
-   4. LAYOUT CONTAINERS — Strip Inleo defaults
-   ONLY on the main wrapper containers, NOT on everything with bg-pri.
-   We target ONLY the outer layout elements.
+   4. LAYOUT CONTAINERS
    ========================================================= */
 body>div,
-body>div>div {
-    background-color: transparent !important;
-    background-image: none !important;
-}
-
-/* The outer main wrapper */
-body main.relative {
-    background-color: transparent !important;
-    background-image: none !important;
-}
-
-/* Main feed column — keep transparent so bg peeks through gaps */
+body>div>div,
+body main.relative,
 main#threads {
     background-color: transparent !important;
     background-image: none !important;
 }
 
-/* Feed column borders */
 main#threads,
 .tbl\:border-x {
-    border-color: rgba(0, 243, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Right sidebar wrapper — transparent */
-aside {
-    background-color: transparent !important;
-    background-image: none !important;
-}
-
-/* The right sidebar inner container */
+aside,
 aside>div {
     background-color: transparent !important;
     background-image: none !important;
 }
 
 /* =========================================================
-   5. POST CARDS — SOLID dark background
-   
-   DOM Path found by browser inspection:
-   main#threads
-     > div:nth-child(2) [class="flex flex-col flex-1"]  ← feed container
-       > div [class="w-full h-full border-b border-pri"] ← individual posts
-   
-   We use multiple selectors to be absolutely sure.
-   The key fix: use a SOLID color, not rgba transparency.
+   5. POST CARDS — hard industrial blocks
    ========================================================= */
-
-/* Target the feed container's direct children (posts) */
 main#threads>div.flex-col>div,
 main#threads>div:nth-child(2)>div,
 main#threads>.flex-col>div {
-    background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.15) !important;
-    border-bottom: 1px solid rgba(0, 243, 255, 0.15) !important;
+    background: rgba(0, 0, 0, 0.50) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-left: 2px solid rgba(64, 64, 64, 0.85) !important;
     position: relative !important;
     margin-bottom: 4px !important;
     z-index: 1 !important;
+    transition: background 0.2s ease, border-left-color 0.2s ease !important;
 }
 
-/* Broader fallback: any div.border-b inside main#threads
-   IMPORTANT: exclude .sticky so the feed header keeps its z-[999] */
+main#threads>div.flex-col>div:hover,
+main#threads>div:nth-child(2)>div:hover {
+    background: rgba(0, 0, 0, 0.70) !important;
+    border-left-color: rgba(211, 84, 0, 0.75) !important;
+}
+
 main#threads div.border-b.border-pri:not(.sticky),
 main#threads div.border-b.dark\:border-pri-d:not(.sticky) {
-    background: var(--panel-bg) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
     position: relative !important;
     z-index: 1 !important;
 }
 
-/* Feed sticky header — ensure z-index stays above post cards
-   Use multiple class selectors for maximum specificity */
 main#threads div.sticky,
 main#threads div.sticky.border-b,
 main#threads div.sticky[class*="z-"] {
@@ -176,20 +158,13 @@ main#threads div.sticky[class*="z-"] {
     position: sticky !important;
 }
 
-/* ---- FIX: Image containers inside posts ----
-   Inleo uses bg-gray-200 / dark:bg-zinc-800 for image wrappers.
-   These render as rgb(39,39,42) = visible gray "white square".
-   Override them to match the dark panel color. */
 main#threads .bg-gray-200,
 main#threads .dark\:bg-zinc-800,
 main#threads [class*="bg-zinc"],
 main#threads [class*="bg-gray"] {
-    background-color: #0a0a12 !important;
+    background-color: var(--panel-bg) !important;
 }
 
-/* ---- FIX: Expanded comments / reply containers ----
-   When comments expand, inner containers with bg-pri become visible.
-   Make ALL bg-pri inside main#threads use the panel background. */
 main#threads .bg-pri,
 main#threads .dark\:bg-pri-d,
 main#threads [class*="bg-pri-hov"],
@@ -199,60 +174,77 @@ main#threads .sm\:dark\:hover\:bg-pri-hov-d {
     background-color: var(--panel-bg) !important;
 }
 
-/* Reply/comment thread dividers should also be dark */
-main#threads [class*="hover:bg-pri"] {
-    background-color: var(--panel-bg) !important;
-}
-
 main#threads [class*="hover:bg-pri"]:hover {
-    background-color: rgba(0, 243, 255, 0.03) !important;
+    background-color: rgba(211, 84, 0, 0.05) !important;
 }
 
-/* Corner bracket top-left — cyan */
+/* Corner bracket TOP-LEFT — orange */
 main#threads>div.flex-col>div::before,
 main#threads>div:nth-child(2)>div::before {
     content: "" !important;
     position: absolute !important;
-    top: -1px !important;
-    left: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-top: 2px solid var(--primary) !important;
-    border-left: 2px solid var(--primary) !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-top: 1px solid var(--primary) !important;
+    border-left: 1px solid var(--primary) !important;
     z-index: 10 !important;
     pointer-events: none !important;
 }
 
-/* Corner bracket bottom-right — red */
+/* Corner bracket BOTTOM-RIGHT — orange */
 main#threads>div.flex-col>div::after,
 main#threads>div:nth-child(2)>div::after {
     content: "" !important;
     position: absolute !important;
-    bottom: -1px !important;
-    right: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-bottom: 2px solid var(--secondary) !important;
-    border-right: 2px solid var(--secondary) !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-bottom: 1px solid var(--primary) !important;
+    border-right: 1px solid var(--primary) !important;
     z-index: 10 !important;
     pointer-events: none !important;
 }
 
-/* The sticky header bar (For You, Latest...) */
 main#threads>div:first-child {
-    background: rgba(5, 5, 8, 0.97) !important;
-    border-bottom: 1px solid rgba(0, 243, 255, 0.15) !important;
+    background: rgba(26, 26, 27, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
     z-index: 999 !important;
 }
 
-/* The compose box area */
 main#threads>div:nth-child(3) {
-    background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    background: var(--gritty-grey) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    position: relative !important;
     z-index: 1 !important;
 }
 
-/* The infinite scroll container */
+main#threads>div:nth-child(3)::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-top: 1px solid var(--primary) !important;
+    border-left: 1px solid var(--primary) !important;
+    pointer-events: none !important;
+}
+
+main#threads>div:nth-child(3)::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-bottom: 1px solid var(--primary) !important;
+    border-right: 1px solid var(--primary) !important;
+    pointer-events: none !important;
+}
+
 main#threads>div:nth-child(4) {
     background: transparent !important;
 }
@@ -261,8 +253,8 @@ main#threads>div:nth-child(4) {
    5b. RIGHT SIDEBAR PANELS
    ========================================================= */
 aside>div>div {
-    background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
     position: relative !important;
     margin-bottom: 16px !important;
 }
@@ -270,53 +262,48 @@ aside>div>div {
 aside>div>div::before {
     content: "" !important;
     position: absolute !important;
-    top: -1px !important;
-    left: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-top: 2px solid var(--primary) !important;
-    border-left: 2px solid var(--primary) !important;
-    z-index: 10 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-top: 1px solid rgba(211, 84, 0, 0.60) !important;
+    border-left: 1px solid rgba(211, 84, 0, 0.60) !important;
     pointer-events: none !important;
 }
 
 aside>div>div::after {
     content: "" !important;
     position: absolute !important;
-    bottom: -1px !important;
-    right: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-bottom: 2px solid var(--secondary) !important;
-    border-right: 2px solid var(--secondary) !important;
-    z-index: 10 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-bottom: 1px solid rgba(211, 84, 0, 0.60) !important;
+    border-right: 1px solid rgba(211, 84, 0, 0.60) !important;
     pointer-events: none !important;
 }
 
 /* =========================================================
    6. LEFT SIDEBAR / NAV
    ========================================================= */
-
-/* Nav panel — solid dark with cyber-panel corners */
 nav {
     background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     position: relative !important;
     padding: 16px 4px !important;
     margin: 8px 0 !important;
     overflow: hidden !important;
-    /* Clip tooltip popovers injected by Inleo JS */
 }
 
 nav::before {
     content: "" !important;
     position: absolute !important;
-    top: -1px !important;
-    left: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-top: 2px solid var(--primary) !important;
-    border-left: 2px solid var(--primary) !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-top: 1px solid var(--primary) !important;
+    border-left: 1px solid var(--primary) !important;
     z-index: 10 !important;
     pointer-events: none !important;
 }
@@ -324,53 +311,49 @@ nav::before {
 nav::after {
     content: "" !important;
     position: absolute !important;
-    bottom: -1px !important;
-    right: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-bottom: 2px solid var(--secondary) !important;
-    border-right: 2px solid var(--secondary) !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-bottom: 1px solid var(--primary) !important;
+    border-right: 1px solid var(--primary) !important;
     z-index: 10 !important;
     pointer-events: none !important;
 }
 
-/* The inner div of each nav link — apply ONLY to direct children */
 nav a.group>div,
 nav a>div,
 nav>div>div {
     background: transparent !important;
     border: none !important;
-    border-left: 2px solid transparent !important;
+    border-right: 2px solid transparent !important;
     padding: 10px 16px !important;
     margin: 0 !important;
     transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
 }
 
-/* Active nav item — cyan left border + subtle bg */
 nav a.item-active div,
 nav a.group.item-active div {
-    background: rgba(0, 243, 255, 0.05) !important;
-    border-left: 2px solid var(--primary) !important;
+    background: rgba(211, 84, 0, 0.10) !important;
+    border-right: 2px solid var(--primary) !important;
     color: var(--primary) !important;
 }
 
-/* Hover state for nav links */
 nav a.group div:hover,
 nav a div:hover {
-    background: rgba(0, 243, 255, 0.05) !important;
-    border-left-color: var(--primary) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: #e5e5e5 !important;
 }
 
-/* Nav text styling */
 nav span {
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Barlow Condensed", sans-serif !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
+    letter-spacing: 0.12em !important;
+    font-weight: 500 !important;
 }
 
-/* Nav icons */
 nav svg {
-    fill: rgba(255, 255, 255, 0.6) !important;
+    fill: rgba(255, 255, 255, 0.45) !important;
 }
 
 nav a.item-active svg {
@@ -379,23 +362,7 @@ nav a.item-active svg {
 
 /* =========================================================
    6b. HIDE SPECIFIC NAV ITEMS
-   DOM structure from inspection:
-   [0] a[href="/threads"] = Home        → KEEP
-   [1] a[href="/explore"] = Explore     → HIDE
-   [2] a[href="/posts"] = Articles      → KEEP
-   [3] a[href="/shorts"] = Shorts       → HIDE
-   [4] DIV = Communities                → HIDE
-   [5] a[href="/notifications"]         → KEEP (move after Profile)
-   [6] DIV = Bookmarks                  → HIDE
-   [7] DIV = Premium                    → KEEP
-   [8] DIV = Wallet                     → KEEP
-   [9] DIV = Profile                    → KEEP
-   [10] DIV = (mobile)                  → leave
-   [11] DIV = More                      → HIDE
-   [12] DIV = Publish                   → KEEP
    ========================================================= */
-/* Use maximum specificity to defeat Tailwind pc:block that re-shows items.
-   Also kill ALL transitions to prevent hover glitches. */
 nav a[href="/explore"],
 nav a[href="/shorts"],
 nav a[href="/explore"] *,
@@ -413,10 +380,6 @@ nav a[href="/shorts"] * {
     transition: none !important;
 }
 
-/* Communities, Bookmarks, More — hide using href-based selectors
-   that are immune to DOM changes from tooltip injection.
-   Previously used nth-child, which broke when Inleo's JS injected
-   ~40 tooltip nodes on hover, shifting all child indices. */
 nav div:has(> a[href="/communities"]),
 nav div:has(> a[href="/bookmarks"]),
 nav div:has(> a[href="/communities"]) *,
@@ -434,8 +397,6 @@ nav div:has(> a[href="/bookmarks"]) * {
     transition: none !important;
 }
 
-/* "More" has no identifying href, so we hide the div that contains
-   only a button (not a link) with "More" text. Target by :has selector. */
 nav>div.hidden.pc\:block:not(:has(a)):not(:has(button[class*="rounded-full"])) {
     display: none !important;
     visibility: hidden !important;
@@ -450,15 +411,11 @@ nav>div.hidden.pc\:block:not(:has(a)):not(:has(button[class*="rounded-full"])) {
     transition: none !important;
 }
 
-/* Kill transitions on ALL nav items to prevent glitch on hover */
 nav>*,
 nav>*>* {
     transition: none !important;
 }
 
-/* Dynamically injected tooltip/popper nodes: These are div elements
-   injected by Inleo's JS on hover that are NOT part of the nav structure.
-   Force them to be positioned absolute and invisible. */
 nav>div[data-radix-popper-content-wrapper],
 nav>div[style*="position"],
 nav>div:not([class]) {
@@ -469,81 +426,38 @@ nav>div:not([class]) {
 
 /* =========================================================
    6c. REORDER NOTIFICATIONS AFTER PROFILE
-   Using href-based selectors instead of nth-child to be immune
-   to DOM changes from tooltip injection.
    ========================================================= */
 nav {
     display: flex !important;
     flex-direction: column !important;
 }
 
-nav>* {
-    order: 0 !important;
-}
+nav>* { order: 0 !important; }
+nav>a[href="/threads"] { order: 1 !important; }
+nav>a[href="/posts"] { order: 2 !important; }
+nav>div:has(> a[href="/premium"]) { order: 3 !important; }
+nav>div:has(> a[href*="/wallet"]) { order: 4 !important; }
+nav>div:has(> a[href*="/profile"]):not(.sm\:hidden) { order: 5 !important; }
+#inleo-skin-settings-link { order: 6 !important; }
+nav>a[href="/notifications"] { order: 7 !important; }
+nav>div.sm\:hidden { order: 8 !important; }
+nav>div:has(button):last-of-type { order: 9 !important; }
 
-/* Home */
-nav>a[href="/threads"] {
-    order: 1 !important;
-}
-
-/* Articles */
-nav>a[href="/posts"] {
-    order: 2 !important;
-}
-
-/* Premium */
-nav>div:has(> a[href="/premium"]) {
-    order: 3 !important;
-}
-
-/* Wallet */
-nav>div:has(> a[href*="/wallet"]) {
-    order: 4 !important;
-}
-
-/* Profile */
-nav>div:has(> a[href*="/profile"]):not(.sm\:hidden) {
-    order: 5 !important;
-}
-
-/* Settings */
-#inleo-skin-settings-link {
-    order: 6 !important;
-}
-
-/* Notifications - AFTER Settings */
-nav>a[href="/notifications"] {
-    order: 7 !important;
-}
-
-/* Mobile profile */
-nav>div.sm\:hidden {
-    order: 8 !important;
-}
-
-/* Publish */
-nav>div:has(button):last-of-type {
-    order: 9 !important;
-}
-
-/* =========================================================
-   6d. HIDE PREMIUM POLYGON SVG
-   (We replace it with the "token" Material Symbol in §19)
-   ========================================================= */
+/* Hide the premium polygon SVG; replaced with icon in §19 */
 nav div:has(> a[href="/premium"]) svg,
 nav a[href="/premium"] svg {
     display: none !important;
 }
 
 /* =========================================================
-   7. LOGO REPLACEMENT
+   7. LOGO REPLACEMENT — stencil SEC_NODE
    ========================================================= */
 a[aria-label="Threads Page"] svg {
     display: none !important;
 }
 
 a[aria-label="Threads Page"] {
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Black Ops One", cursive !important;
     font-size: 0 !important;
     display: flex !important;
     align-items: center !important;
@@ -557,56 +471,57 @@ a[aria-label="Threads Page"] {
 }
 
 a[aria-label="Threads Page"]::before {
-    content: "token" !important;
+    content: "radar" !important;
     font-family: 'Material Symbols Outlined' !important;
     font-size: 22px !important;
     color: var(--primary) !important;
-    margin-right: 8px !important;
+    margin-right: 10px !important;
 }
 
 a[aria-label="Threads Page"]::after {
-    content: "INLEO // OS_0.4.2_GLITCH" !important;
-    font-family: "Share Tech Mono", monospace !important;
-    font-size: 14px !important;
+    content: "SEC_NODE_01" !important;
+    font-family: "Black Ops One", cursive !important;
+    font-size: 16px !important;
     color: var(--primary) !important;
-    text-shadow: 1px 0 var(--secondary), -1px 0 var(--primary) !important;
-    letter-spacing: -0.5px !important;
+    letter-spacing: 0.05em !important;
     white-space: nowrap !important;
 }
 
 /* =========================================================
-   8. BUTTONS
+   8. BUTTONS — hard-edged industrial ghost buttons
    ========================================================= */
 button.rounded-full,
 .pc\:bg-acc,
 .dark\:pc\:bg-acc {
-    background: rgba(0, 243, 255, 0.1) !important;
-    border: 1px solid rgba(0, 243, 255, 0.5) !important;
+    background: transparent !important;
+    border: 1px solid rgba(211, 84, 0, 0.40) !important;
     color: var(--primary) !important;
-    font-family: "Share Tech Mono", monospace !important;
-    font-size: 12px !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
     letter-spacing: 0.2em !important;
     text-transform: uppercase !important;
     padding: 10px 32px !important;
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.1) !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.2s ease !important;
 }
 
 button.rounded-full:hover,
 .pc\:bg-acc:hover {
-    background: rgba(0, 243, 255, 0.3) !important;
-    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) !important;
+    background: var(--primary) !important;
+    color: #000 !important;
+    border-color: var(--primary) !important;
 }
 
-/* Generic action buttons — minimal */
 button:not(.rounded-full):not(.pc\:bg-acc) {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 4px 8px !important;
-    color: rgba(255, 255, 255, 0.4) !important;
+    color: rgba(255, 255, 255, 0.45) !important;
     transition: color 0.2s ease !important;
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
 }
 
 button:not(.rounded-full):not(.pc\:bg-acc):hover {
@@ -614,20 +529,31 @@ button:not(.rounded-full):not(.pc\:bg-acc):hover {
 }
 
 /* =========================================================
-   9. INPUTS / COMPOSE BOX
+   9. INPUTS — hard-outlined black-on-black
    ========================================================= */
 input,
 textarea,
 [contenteditable="true"] {
-    background: transparent !important;
-    border: none !important;
-    color: var(--primary) !important;
-    font-family: "Share Tech Mono", monospace !important;
+    background: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #e5e5e5 !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    padding: 6px 10px !important;
+}
+
+/* Composer editor — respect user's actual typing (no forced uppercase) */
+[contenteditable="true"].markdown-editor,
+[contenteditable="true"].markdown-editor * {
+    text-transform: none !important;
+    letter-spacing: normal !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-    color: rgba(0, 243, 255, 0.2) !important;
+    color: rgba(255, 255, 255, 0.25) !important;
+    letter-spacing: 0.08em !important;
 }
 
 input:focus,
@@ -635,13 +561,14 @@ textarea:focus,
 [contenteditable="true"]:focus {
     outline: none !important;
     box-shadow: none !important;
+    border-color: var(--primary) !important;
 }
 
 /* =========================================================
-   10. HUD LINE — dividers
+   10. HUD LINES / DIVIDERS
    ========================================================= */
 hr {
-    border-color: rgba(0, 243, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* =========================================================
@@ -649,24 +576,39 @@ hr {
    ========================================================= */
 p,
 span {
-    font-family: "Rajdhani", sans-serif !important;
-    color: rgba(255, 255, 255, 0.9) !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    color: rgba(255, 255, 255, 0.80) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
+}
+
+/* Keep post/prose body readable — mixed case on paragraphs inside posts
+   and the composer prose preview */
+main#threads p,
+main#threads p span,
+.prose p,
+.prose p span,
+.prose *,
+main p,
+main p span {
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    color: var(--on-surface) !important;
 }
 
 a {
     color: var(--primary) !important;
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Barlow Condensed", sans-serif !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
+    letter-spacing: 0.05em !important;
     transition: color 0.2s ease !important;
     text-decoration: none !important;
 }
 
 a:hover {
-    text-shadow: 1px 0 var(--secondary), -1px 0 var(--primary) !important;
+    color: var(--primary-hot) !important;
 }
 
-/* Exclude nav links from global a:hover text-shadow — it causes glitch flicker */
 nav a:hover,
 nav a.group:hover {
     text-shadow: none !important;
@@ -675,21 +617,24 @@ nav a.group:hover {
 [class*="font-semibold"],
 [class*="font-medium"],
 [class*="font-bold"] {
-    color: var(--primary) !important;
-    font-family: "Share Tech Mono", monospace !important;
+    color: #e5e5e5 !important;
+    font-family: "Black Ops One", cursive !important;
+    letter-spacing: 0.04em !important;
+    font-weight: 400 !important;
 }
 
 [class*="text-gray"],
 .text-pri\/60,
 .dark\:text-pri-d\/60 {
-    color: rgba(255, 255, 255, 0.4) !important;
-    font-family: "Share Tech Mono", monospace !important;
-    font-size: 10px !important;
-    letter-spacing: 0.15em !important;
+    color: rgba(255, 255, 255, 0.40) !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    font-size: 11px !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
 }
 
 /* =========================================================
-   12. SVG/ICONS
+   12. SVG / ICONS
    ========================================================= */
 svg {
     fill: currentColor !important;
@@ -727,10 +672,10 @@ svg.text-acc {
    15. FEED TABS
    ========================================================= */
 main#threads>div:first-child a {
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Black Ops One", cursive !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.1em !important;
-    color: rgba(255, 255, 255, 0.6) !important;
+    letter-spacing: 0.08em !important;
+    color: rgba(255, 255, 255, 0.50) !important;
     border-bottom: 2px solid transparent !important;
 }
 
@@ -745,16 +690,12 @@ main#threads>div:first-child a[class*="active"] {
    ========================================================= */
 .sticky,
 [class*="sticky"] {
-    /* PERF: backdrop-filter:blur is GPU-intensive during scroll.
-       Use a near-opaque solid background instead — visually equivalent. */
-    background: rgba(5, 5, 8, 0.97) !important;
-    border-bottom: 1px solid rgba(0, 243, 255, 0.2) !important;
+    background: rgba(10, 10, 10, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 /* =========================================================
-   17. YOUR LISTS DROPDOWN (Bug 1)
-   The popover from "Your Lists" gets hidden behind other
-   elements or invisible due to z-index / background rules.
+   17. YOUR LISTS / RADIX DROPDOWNS
    ========================================================= */
 [data-radix-popper-content-wrapper] {
     z-index: 9999 !important;
@@ -766,46 +707,44 @@ div[role="listbox"],
 div[data-radix-menu-content],
 [data-radix-popper-content-wrapper]>div {
     background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.3) !important;
+    border: 1px solid rgba(211, 84, 0, 0.35) !important;
     z-index: 9999 !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9) !important;
 }
 
 div[role="menu"] a,
 div[role="menu"] button,
 div[role="listbox"] a,
 div[role="listbox"] button {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-family: "Share Tech Mono", monospace !important;
+    color: rgba(255, 255, 255, 0.80) !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
 }
 
 div[role="menu"] a:hover,
 div[role="menu"] button:hover,
 div[role="listbox"] a:hover,
 div[role="listbox"] button:hover {
-    background: rgba(0, 243, 255, 0.08) !important;
+    background: rgba(211, 84, 0, 0.10) !important;
     color: var(--primary) !important;
 }
 
-/* =========================================================
-   17b. YOUR LISTS DROPDOWN (feeds header)
-   The dropdown is an absolute-positioned div inside the
-   feed tab bar. §8 makes its buttons invisible.
-   ========================================================= */
+/* 17b — Your Lists (feeds header) dropdown */
 div[class*="top-full"][class*="z-1000"],
 div[class*="top-full"][class*="z-1000"] * {
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Barlow Condensed", sans-serif !important;
 }
 
 div[class*="top-full"][class*="z-1000"] {
     background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.3) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+    border: 1px solid rgba(211, 84, 0, 0.35) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9) !important;
 }
 
 div[class*="top-full"][class*="z-1000"] button {
     background: transparent !important;
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: rgba(255, 255, 255, 0.80) !important;
     padding: 10px 14px !important;
     font-size: 13px !important;
     text-transform: uppercase !important;
@@ -814,74 +753,39 @@ div[class*="top-full"][class*="z-1000"] button {
 }
 
 div[class*="top-full"][class*="z-1000"] button:hover {
-    background: rgba(0, 243, 255, 0.08) !important;
+    background: rgba(211, 84, 0, 0.10) !important;
     color: var(--primary) !important;
 }
 
 /* =========================================================
-   18. AVATAR OUTLINES (Change 2)
-   Followed users already have outline-purple-500.
-   Add a white outline to ALL avatar wrapper divs, then let
-   the purple override for followed users.
+   18. AVATAR OUTLINES
    ========================================================= */
-
-/* White outline ONLY for unfollowed users (no purple class) */
 div.rounded-full:has(> span > span > img):not([class*="outline-purple"]) {
-    outline: 2px solid rgba(255, 255, 255, 0.5) !important;
+    outline: 1px solid rgba(255, 255, 255, 0.20) !important;
     outline-offset: 2px !important;
 }
 
-/* Followed users keep the site's native purple outline untouched */
-
 /* =========================================================
-   19. NAV MENU SYMMETRY + PREMIUM ICON (Change 3)
-   Normalize padding & alignment across all nav items.
-   Add the "token" icon to Premium to match the INLEO logo.
+   19. NAV SYMMETRY + PREMIUM ICON
    ========================================================= */
-
-/* Premium — SVG is hidden in §6d, add token icon via ::before
-   The inner div (.flex.items-center) is the actual flex container.
-   HOME/ARTICLES have: pc:pl-4 (16px) and gap-x-5 (20px). */
-
-/* Premium link — must be display: block like HOME/ARTICLES */
 nav a[href="/premium"] {
     display: block !important;
 }
 
-/* Premium: inject token icon into the inner flex container */
 nav a[href="/premium"]>div::before {
-    content: "token" !important;
+    content: "shield_person" !important;
     font-family: 'Material Symbols Outlined' !important;
     font-size: 24px !important;
     color: var(--primary) !important;
-    text-shadow: 1px 0 0 var(--secondary), -1px 0 0 var(--primary) !important;
     flex-shrink: 0 !important;
     line-height: 1 !important;
 }
 
-/* Premium: remove nesting offset from inner containers */
 nav a[href="/premium"]>div>span>div.flex.items-center {
     gap: 0 !important;
 }
 
-/* =========================================================
-   19b. BUG FIX — Premium & Notifications alignment symmetry
-   Both items were shifted further right than Home/Articles
-   due to: Premium's extra DOM nesting layer, and both items
-   lacking explicit padding/gap normalisation.
-   Also: Inleo's native `text-white` class was making them
-   render white instead of the themed cyan.
-   ========================================================= */
-
-/* Normalize Premium inner flex container to match Home/Articles indent */
-nav a[href="/premium"]>div {
-    padding-left: 16px !important;
-    gap: 20px !important;
-    display: flex !important;
-    align-items: center !important;
-}
-
-/* Normalize Notifications inner div to same indent */
+nav a[href="/premium"]>div,
 nav a[href="/notifications"]>div {
     padding-left: 16px !important;
     gap: 20px !important;
@@ -889,15 +793,13 @@ nav a[href="/notifications"]>div {
     align-items: center !important;
 }
 
-/* Kill white color on Premium & Notifications — use muted white like others */
 nav a[href="/premium"] span:not(.material-symbols-outlined),
 nav a[href="/premium"]>div,
 nav a[href="/notifications"] span,
 nav a[href="/notifications"]>div {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: rgba(255, 255, 255, 0.70) !important;
 }
 
-/* Keep icon/active-state cyan intact */
 nav a[href="/premium"].item-active span,
 nav a[href="/premium"].item-active>div,
 nav a[href="/notifications"].item-active span,
@@ -906,16 +808,16 @@ nav a[href="/notifications"].item-active>div {
 }
 
 /* =========================================================
-   20. PRICE TICKER PANEL (Change 4)
-   Styled JS-injected element below the nav.
+   20. PRICE TICKER — styled as "SYS_REPORT" block
    ========================================================= */
 #cyber-price-ticker {
-    background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.15) !important;
+    background: rgba(0, 0, 0, 0.80) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-left: 2px solid var(--primary) !important;
     margin: 0 0 8px !important;
     padding: 12px 16px !important;
     position: relative !important;
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Barlow Condensed", sans-serif !important;
     width: auto !important;
     box-sizing: border-box !important;
 }
@@ -923,37 +825,34 @@ nav a[href="/notifications"].item-active>div {
 #cyber-price-ticker::before {
     content: "" !important;
     position: absolute !important;
-    top: -1px !important;
-    left: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-top: 2px solid var(--primary) !important;
-    border-left: 2px solid var(--primary) !important;
-    z-index: 10 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-top: 1px solid var(--primary) !important;
+    border-left: 1px solid var(--primary) !important;
     pointer-events: none !important;
 }
 
 #cyber-price-ticker::after {
     content: "" !important;
     position: absolute !important;
-    bottom: -1px !important;
-    right: -1px !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-bottom: 2px solid var(--secondary) !important;
-    border-right: 2px solid var(--secondary) !important;
-    z-index: 10 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-bottom: 1px solid var(--primary) !important;
+    border-right: 1px solid var(--primary) !important;
     pointer-events: none !important;
 }
 
 #cyber-price-ticker .ticker-title {
-    font-size: 16px !important;
+    font-family: "Black Ops One", cursive !important;
+    font-size: 13px !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.2em !important;
-    color: #ffffff !important;
+    letter-spacing: 0.18em !important;
+    color: var(--primary) !important;
     margin-bottom: 10px !important;
-    opacity: 1 !important;
-    font-weight: 600 !important;
 }
 
 #cyber-price-ticker .ticker-row {
@@ -961,7 +860,7 @@ nav a[href="/notifications"].item-active>div {
     justify-content: space-between !important;
     align-items: center !important;
     padding: 6px 0 !important;
-    border-bottom: 1px solid rgba(0, 243, 255, 0.06) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 #cyber-price-ticker .ticker-row:last-child {
@@ -969,24 +868,27 @@ nav a[href="/notifications"].item-active>div {
 }
 
 #cyber-price-ticker .ticker-symbol {
-    font-size: 15px !important;
-    color: var(--primary) !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
+    font-family: "Black Ops One", cursive !important;
+    font-size: 13px !important;
+    color: #e5e5e5 !important;
+    letter-spacing: 0.12em !important;
 }
 
 #cyber-price-ticker .ticker-price {
-    font-size: 15px !important;
-    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 14px !important;
+    color: rgba(255, 255, 255, 0.90) !important;
+    font-variant-numeric: tabular-nums !important;
+    letter-spacing: 0.04em !important;
 }
 
 #cyber-price-ticker .ticker-change {
-    font-size: 13px !important;
+    font-size: 12px !important;
     letter-spacing: 0.05em !important;
+    font-variant-numeric: tabular-nums !important;
 }
 
 #cyber-price-ticker .ticker-change.up {
-    color: #00ff88 !important;
+    color: #2ecc71 !important;
 }
 
 #cyber-price-ticker .ticker-change.down {
@@ -994,16 +896,12 @@ nav a[href="/notifications"].item-active>div {
 }
 
 /* =========================================================
-   21. PROFILE PAGE — HIDE STATS + FIX SORT BUTTONS (Bug 5)
+   21. PROFILE PAGE
    ========================================================= */
-
-/* Hide Following / Followers / Referrals row */
 div.flex.gap-4:has(> a[href*="/following"]) {
     display: none !important;
 }
 
-/* Sort buttons (Latest, Oldest, Trending, Parents) — reduce padding
-   to prevent overflow. The parent container is h-14 with gap-2. */
 div.flex.flex-row.items-center.gap-2:has(> button) {
     gap: 4px !important;
     padding: 8px !important;
@@ -1015,7 +913,6 @@ div.flex.flex-row.items-center.gap-2:has(> button)::-webkit-scrollbar {
     display: none !important;
 }
 
-/* Sort buttons themselves — smaller horizontal padding */
 div.flex.flex-row.items-center.gap-2>button {
     padding: 6px 10px !important;
     font-size: 12px !important;
@@ -1023,19 +920,13 @@ div.flex.flex-row.items-center.gap-2>button {
     flex-shrink: 0 !important;
 }
 
-/* Fix the active bar / indicator under sort buttons —
-   the border-t on the parent overflow container */
 div.relative.border-t:has(> div.flex.flex-row.items-center.gap-2) {
     overflow: visible !important;
 }
 
 /* =========================================================
-   22. ARTICLES PAGE — INLEO DROPDOWN FIX (Bug 6, 8, & 9)
-   The filter row (Following, Subscriptions, Trending, Hot, New)
-   plus the INLEO dropdown at the end.
+   22. ARTICLES PAGE — filter row layout
    ========================================================= */
-
-/* Filter row wrapper — span full width, remove side padding */
 body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 {
     padding-left: 0 !important;
     padding-right: 0 !important;
@@ -1045,13 +936,11 @@ body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1
     overflow: visible !important;
 }
 
-/* Make ONLY the filter group transparent wrappers so their buttons become direct children */
 body.inleo-articles-page div.tbl\:flex.flex-row.items-center.-left-3:has(> button),
 body.inleo-articles-page div.flex.flex-row.items-center.-left-3:has(> button) {
     display: contents !important;
 }
 
-/* Make the INLEO wrapper itself the flexible grid item so it retains its relative positioning context for the dropdown */
 body.inleo-articles-page div.relative.flex.ml-auto:has(> button),
 body.inleo-articles-page div.relative.flex[class*="ml-auto"]:has(> button),
 body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
@@ -1061,12 +950,10 @@ body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
     width: 100% !important;
 }
 
-/* Hide the native divider so it doesn't break the equal-width flex grid */
 span.w-\[1px\].h-5.bg-pri-d\/\[\.25\].dark\:bg-pri\/\[\.25\].flex {
     display: none !important;
 }
 
-/* Force filter buttons AND the INLEO wrapper to stretch and share space symmetrically */
 body.inleo-articles-page div.tbl\:flex.flex-row.items-center.-left-3>button,
 body.inleo-articles-page div.flex.flex-row.items-center.-left-3>button,
 body.inleo-articles-page div.relative.flex.ml-auto:has(> button),
@@ -1075,49 +962,38 @@ body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
     flex: 1 1 0 !important;
 }
 
-/* Global button styling for ALL inner buttons (filters and the INLEO button) */
 body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 button {
     padding: 0 !important;
     font-size: 11px !important;
     letter-spacing: 0.5px !important;
     height: 36px !important;
-    border-radius: 4px !important;
+    border-radius: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     white-space: nowrap !important;
 }
 
-/* Force the inner INLEO button to expand to completely fill its flexible wrapper */
 body.inleo-articles-page div.relative.flex.ml-auto>button,
 body.inleo-articles-page div.relative.flex[class*="ml-auto"]>button,
 body.inleo-articles-page div.relative.flex.tbl\:ml-5>button {
     width: 100% !important;
 }
 
-
-
 /* =========================================================
-   23. PUBLISH DROPDOWN MENU (Bug 7)
-   The dropdown that appears after clicking "Publish".
-   Parent: div with bg-pri dark:bg-pri-d border rounded-xl
-   Children: div.flex.flex-col.w-full > a links
+   23. PUBLISH DROPDOWN MENU
    ========================================================= */
-
-/* The publish dropdown container */
 nav div[class*="w-[calc"] {
     background: var(--panel-bg) !important;
-    border: 1px solid rgba(0, 243, 255, 0.3) !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9),
-        0 0 15px rgba(0, 243, 255, 0.08) !important;
+    border: 1px solid rgba(211, 84, 0, 0.35) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.95) !important;
     z-index: 9999 !important;
     padding: 4px !important;
 }
 
-/* Publish dropdown links */
 nav div[class*="w-[calc"] a {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-family: "Share Tech Mono", monospace !important;
+    color: rgba(255, 255, 255, 0.80) !important;
+    font-family: "Barlow Condensed", sans-serif !important;
     font-size: 13px !important;
     text-transform: uppercase !important;
     letter-spacing: 0.08em !important;
@@ -1127,29 +1003,25 @@ nav div[class*="w-[calc"] a {
 }
 
 nav div[class*="w-[calc"] a:hover {
-    background: rgba(0, 243, 255, 0.08) !important;
+    background: rgba(211, 84, 0, 0.10) !important;
     color: var(--primary) !important;
     border-left: 2px solid var(--primary) !important;
 }
 
 /* =========================================================
-   24. MUTE FEATURE STYLES
-   Styles for the injected [ MUTE ] button and hiding logic.
+   24. MUTE FEATURE
    ========================================================= */
-
-/* The injected Mute button
-   Uses doubled class selector to beat the generic button rule in §8
-   which has specificity (0,2,1) via button:not(.rounded-full):not(.pc\:bg-acc) */
 button.inleo-mute-btn.inleo-mute-btn {
-    font-family: "Share Tech Mono", monospace !important;
-    font-size: 10px !important;
-    color: #ff2a00 !important;                     /* Red text by default */
+    font-family: "Barlow Condensed", sans-serif !important;
+    font-size: 11px !important;
+    color: var(--secondary) !important;
     background: transparent !important;
     border: none !important;
     padding: 2px 4px !important;
     margin: 0 !important;
     cursor: pointer !important;
-    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
     border-radius: 0 !important;
     transition: all 0.2s ease !important;
     white-space: nowrap !important;
@@ -1157,25 +1029,20 @@ button.inleo-mute-btn.inleo-mute-btn {
     vertical-align: middle !important;
 }
 
-/* Hover state for the mute button */
 button.inleo-mute-btn.inleo-mute-btn:hover {
-    background: rgba(255, 42, 0, 0.15) !important;
-    color: #fff !important;                        /* White text on hover */
-    text-shadow: 0 0 6px rgba(255, 42, 0, 0.6) !important;
+    background: rgba(146, 43, 33, 0.18) !important;
+    color: #fff !important;
+    text-shadow: 0 0 6px rgba(146, 43, 33, 0.7) !important;
 }
 
-/* Wrapper ensures mute button always appears to the right of the username */
 .inleo-mute-wrapper {
     display: inline-flex !important;
     align-items: center !important;
     vertical-align: middle !important;
     margin-left: 6px !important;
-    order: 99 !important;                          /* Force to the right in flex containers */
+    order: 99 !important;
 }
 
-/* ---- HIDE mute buttons inside hover/popup cards ----
-   Inleo hover cards use a shadow + text-xs pattern.
-   This prevents duplicated mute buttons in profile popups. */
 div[class*="shadow-["][class*="text-xs"] .inleo-mute-btn,
 div[class*="shadow-["][class*="text-xs"] .inleo-mute-wrapper,
 [data-radix-popper-content-wrapper] .inleo-mute-btn,
@@ -1185,7 +1052,6 @@ div[role="tooltip"] .inleo-mute-wrapper {
     display: none !important;
 }
 
-/* Hide posts that belong to muted users or match muted phrases */
 .inleo-muted-post,
 .inleo-phrase-muted {
     display: none !important;
@@ -1197,39 +1063,29 @@ div[role="tooltip"] .inleo-mute-wrapper {
 }
 
 /* =========================================================
-   25. WALLET PAGE OVERLAPS (Bug 10)
-   When the URL contains /wallet, the content script adds
-   the .inleo-wallet-page class to the body.
-   Hide the "More" option and the Market Data ticker.
+   25. WALLET PAGE
    ========================================================= */
-
 body.inleo-wallet-page #cyber-price-ticker {
     display: none !important;
 }
 
-/* Hide 'More' options on Wallet page */
 body.inleo-wallet-page nav div:has(> button[title="More"]),
 body.inleo-wallet-page nav button[title="More"] {
     display: none !important;
 }
 
 /* =========================================================
-   26. AVATAR OUTLINES (User vs Others)
-   The content script injects .avatar-self and .avatar-other
-   classes onto the profile <a> link tags.
+   26. AVATAR OUTLINES — self vs other
    ========================================================= */
-
-/* The user's own avatar gets a cyan/green outline */
 .avatar-self-target {
-    border-color: #35dce5 !important;
+    border-color: var(--primary) !important;
     border-width: 1.5px !important;
     border-style: solid !important;
     outline: none !important;
 }
 
-/* All other users get a red outline */
 .avatar-other-target {
-    border-color: #fa2522 !important;
+    border-color: var(--secondary) !important;
     border-width: 1.5px !important;
     border-style: solid !important;
     outline: none !important;

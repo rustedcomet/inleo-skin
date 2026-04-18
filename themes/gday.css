@@ -1,0 +1,1006 @@
+/* themes/gday.css — Port of debug/inleo_gday (Ethereal Terminal / Neon-Minimalist HUD)
+
+   Design North Star (see DESIGN.md):
+     - Deep blue surface (#0d1321) punctuated by neon purple + cyan
+     - No rounded corners anywhere. Everything is sharp / projected
+     - Hairline accents instead of 1px solid borders
+     - Glassmorphism for floating elements (blur + transparency)
+     - Space Grotesk for headline/label, Inter for body
+     - Corner-bracket HUD accents on cards (primary only, TR)
+*/
+
+/* =========================================================
+   FONTS
+   ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* =========================================================
+   CSS VARIABLES — pulled directly from inleo_gday/code.html
+   ========================================================= */
+:root[data-inleo-skin="gday"] {
+    --primary: #ecb2ff;            /* neon purple */
+    --primary-container: #bd00ff;
+    --secondary: #d3fbff;          /* pale cyan */
+    --secondary-fixed-dim: #00dbe9;/* hard cyan */
+    --tertiary: #ffb1c3;
+    --bg-dark: #0d1321;
+    --surface-container-lowest: #070e1b;
+    --surface-container-low: #151c29;
+    --surface-container: #19202d;
+    --surface-container-high: #232a38;
+    --surface-container-highest: #2e3543;
+    --panel-bg: #151c29;           /* card base */
+    --panel-bg-deep: #19202d;      /* slightly lifted panel */
+    --outline-variant: #514255;
+}
+
+/* =========================================================
+   0. NUCLEAR RESET — Kill ALL rounded corners site-wide
+   ========================================================= */
+*,
+*::before,
+*::after {
+    border-radius: 0px !important;
+}
+
+/* =========================================================
+   1. BODY — deep-blue surface with faint scanline overlay
+   ========================================================= */
+body {
+    background-color: var(--bg-dark) !important;
+    background-image:
+        radial-gradient(circle at 20% 10%, rgba(236, 178, 255, 0.05) 0%, transparent 55%),
+        radial-gradient(circle at 85% 85%, rgba(0, 219, 233, 0.04) 0%, transparent 60%) !important;
+    background-size: 100% 100%, 100% 100% !important;
+    background-attachment: scroll !important;
+    font-family: "Inter", sans-serif !important;
+    color: #dce2f5 !important;
+    overflow-x: hidden !important;
+}
+
+/* =========================================================
+   2. SCANLINE OVERLAY — subtle HUD feel
+   ========================================================= */
+body::before {
+    content: " " !important;
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    background: linear-gradient(
+        to bottom,
+        rgba(13, 19, 33, 0) 50%,
+        rgba(0, 0, 0, 0.20) 50%
+    ) !important;
+    background-size: 100% 4px !important;
+    z-index: 9998 !important;
+    pointer-events: none !important;
+    will-change: transform !important;
+    transform: translateZ(0) !important;
+    opacity: 0.35 !important;
+}
+
+body::after { display: none !important; }
+
+/* =========================================================
+   3. GLOBAL GRAY BACKGROUND KILL — match panel color
+   ========================================================= */
+[class*="bg-zinc"],
+[class*="bg-gray"],
+[class*="bg-neutral"],
+.dark\:bg-zinc-800,
+.bg-gray-200,
+.dark\:bg-zinc-700,
+.dark\:bg-neutral-800 {
+    background-color: var(--panel-bg) !important;
+}
+
+/* =========================================================
+   4. LAYOUT CONTAINERS
+   ========================================================= */
+body>div,
+body>div>div,
+body main.relative,
+main#threads {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+main#threads,
+.tbl\:border-x {
+    border-color: rgba(236, 178, 255, 0.08) !important;
+}
+
+aside,
+aside>div {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* =========================================================
+   5. POST CARDS — glassmorphic deep-blue with hairline left border
+   ========================================================= */
+main#threads>div.flex-col>div,
+main#threads>div:nth-child(2)>div,
+main#threads>.flex-col>div {
+    background: rgba(21, 28, 41, 0.60) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: none !important;
+    border-left: 1px solid rgba(236, 178, 255, 0.20) !important;
+    position: relative !important;
+    margin-bottom: 4px !important;
+    z-index: 1 !important;
+    transition: border-left-color 0.25s ease !important;
+}
+
+main#threads>div.flex-col>div:hover,
+main#threads>div:nth-child(2)>div:hover {
+    border-left-color: rgba(236, 178, 255, 0.55) !important;
+}
+
+main#threads div.border-b.border-pri:not(.sticky),
+main#threads div.border-b.dark\:border-pri-d:not(.sticky) {
+    background: rgba(21, 28, 41, 0.50) !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* Feed sticky header — keep above cards */
+main#threads div.sticky,
+main#threads div.sticky.border-b,
+main#threads div.sticky[class*="z-"] {
+    z-index: 999 !important;
+    position: sticky !important;
+}
+
+main#threads .bg-gray-200,
+main#threads .dark\:bg-zinc-800,
+main#threads [class*="bg-zinc"],
+main#threads [class*="bg-gray"] {
+    background-color: var(--surface-container) !important;
+}
+
+main#threads .bg-pri,
+main#threads .dark\:bg-pri-d,
+main#threads [class*="bg-pri-hov"],
+main#threads [class*="hover:bg-pri"],
+main#threads .sm\:hover\:bg-pri-hov,
+main#threads .sm\:dark\:hover\:bg-pri-hov-d {
+    background-color: var(--panel-bg) !important;
+}
+
+main#threads [class*="hover:bg-pri"]:hover {
+    background-color: rgba(236, 178, 255, 0.05) !important;
+}
+
+/* Corner-bracket accent — TOP-RIGHT only, primary hairline */
+main#threads>div.flex-col>div::after,
+main#threads>div:nth-child(2)>div::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 10px !important;
+    height: 10px !important;
+    border-top: 1px solid rgba(236, 178, 255, 0.55) !important;
+    border-right: 1px solid rgba(236, 178, 255, 0.55) !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+}
+
+/* Feed sticky bar */
+main#threads>div:first-child {
+    background: rgba(13, 19, 33, 0.80) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid rgba(236, 178, 255, 0.10) !important;
+    z-index: 999 !important;
+}
+
+/* Compose box */
+main#threads>div:nth-child(3) {
+    background: rgba(21, 28, 41, 0.60) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: none !important;
+    border-left: 2px solid rgba(236, 178, 255, 0.40) !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+main#threads>div:nth-child(3)::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 10px !important;
+    height: 10px !important;
+    border-top: 1px solid rgba(236, 178, 255, 0.55) !important;
+    border-right: 1px solid rgba(236, 178, 255, 0.55) !important;
+    pointer-events: none !important;
+}
+
+main#threads>div:nth-child(4) {
+    background: transparent !important;
+}
+
+/* =========================================================
+   5b. RIGHT SIDEBAR PANELS
+   ========================================================= */
+aside>div>div {
+    background: rgba(7, 14, 27, 0.40) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: none !important;
+    border-left: 1px solid rgba(236, 178, 255, 0.10) !important;
+    position: relative !important;
+    margin-bottom: 16px !important;
+}
+
+aside>div>div::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 10px !important;
+    height: 10px !important;
+    border-top: 1px solid rgba(236, 178, 255, 0.40) !important;
+    border-right: 1px solid rgba(236, 178, 255, 0.40) !important;
+    pointer-events: none !important;
+}
+
+/* =========================================================
+   6. LEFT SIDEBAR / NAV
+   ========================================================= */
+nav {
+    background: rgba(13, 19, 33, 0.60) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border: none !important;
+    border-right: 1px solid rgba(236, 178, 255, 0.20) !important;
+    box-shadow: 0 0 15px rgba(236, 178, 255, 0.05) !important;
+    position: relative !important;
+    padding: 16px 6px !important;
+    margin: 8px 0 !important;
+    overflow: hidden !important;
+}
+
+/* Inner containers for each nav link */
+nav a.group>div,
+nav a>div,
+nav>div>div {
+    background: transparent !important;
+    border: none !important;
+    border-left: 2px solid transparent !important;
+    padding: 10px 16px !important;
+    margin: 0 !important;
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease !important;
+}
+
+nav a.item-active div,
+nav a.group.item-active div {
+    background: rgba(236, 178, 255, 0.05) !important;
+    border-left: 2px solid var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+nav a.group div:hover,
+nav a div:hover {
+    background: rgba(21, 28, 41, 0.70) !important;
+    border-left-color: rgba(236, 178, 255, 0.55) !important;
+    color: var(--secondary) !important;
+}
+
+nav span {
+    font-family: "Space Grotesk", sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05rem !important;
+}
+
+nav svg {
+    fill: rgba(220, 226, 245, 0.55) !important;
+}
+
+nav a.item-active svg {
+    fill: var(--primary) !important;
+}
+
+/* =========================================================
+   6b. HIDE SPECIFIC NAV ITEMS (same set as cyberpunk-v2)
+   ========================================================= */
+nav a[href="/explore"],
+nav a[href="/shorts"],
+nav a[href="/explore"] *,
+nav a[href="/shorts"] * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    transition: none !important;
+}
+
+nav div:has(> a[href="/communities"]),
+nav div:has(> a[href="/bookmarks"]),
+nav div:has(> a[href="/communities"]) *,
+nav div:has(> a[href="/bookmarks"]) * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    transition: none !important;
+}
+
+nav>div.hidden.pc\:block:not(:has(a)):not(:has(button[class*="rounded-full"])) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    transition: none !important;
+}
+
+nav>*,
+nav>*>* {
+    transition: none !important;
+}
+
+nav>div[data-radix-popper-content-wrapper],
+nav>div[style*="position"],
+nav>div:not([class]) {
+    position: absolute !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+}
+
+/* =========================================================
+   6c. REORDER NOTIFICATIONS AFTER PROFILE
+   ========================================================= */
+nav {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+nav>* { order: 0 !important; }
+nav>a[href="/threads"] { order: 1 !important; }
+nav>a[href="/posts"] { order: 2 !important; }
+nav>div:has(> a[href="/premium"]) { order: 3 !important; }
+nav>div:has(> a[href*="/wallet"]) { order: 4 !important; }
+nav>div:has(> a[href*="/profile"]):not(.sm\:hidden) { order: 5 !important; }
+#inleo-skin-settings-link { order: 6 !important; }
+nav>a[href="/notifications"] { order: 7 !important; }
+nav>div.sm\:hidden { order: 8 !important; }
+nav>div:has(button):last-of-type { order: 9 !important; }
+
+/* Hide the premium polygon SVG; replaced with token icon in §19 */
+nav div:has(> a[href="/premium"]) svg,
+nav a[href="/premium"] svg {
+    display: none !important;
+}
+
+/* =========================================================
+   7. LOGO REPLACEMENT — NEURAL_LINK
+   ========================================================= */
+a[aria-label="Threads Page"] svg {
+    display: none !important;
+}
+
+a[aria-label="Threads Page"] {
+    font-family: "Space Grotesk", sans-serif !important;
+    font-size: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 12px 16px 12px 18px !important;
+    background: transparent !important;
+    border: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    box-sizing: border-box !important;
+}
+
+a[aria-label="Threads Page"]::before {
+    content: "hub" !important;
+    font-family: 'Material Symbols Outlined' !important;
+    font-size: 22px !important;
+    color: var(--primary) !important;
+    margin-right: 8px !important;
+    text-shadow: 0 0 8px rgba(236, 178, 255, 0.40) !important;
+}
+
+a[aria-label="Threads Page"]::after {
+    content: "NEURAL_LINK" !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    color: var(--primary) !important;
+    letter-spacing: 0.04em !important;
+    white-space: nowrap !important;
+}
+
+/* =========================================================
+   8. BUTTONS — Ghost-border primary, minimal secondary
+   ========================================================= */
+button.rounded-full,
+.pc\:bg-acc,
+.dark\:pc\:bg-acc {
+    background: transparent !important;
+    border: 1px solid rgba(236, 178, 255, 0.30) !important;
+    color: var(--primary) !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    font-size: 10px !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+    padding: 10px 32px !important;
+    transition: all 0.25s ease !important;
+}
+
+button.rounded-full:hover,
+.pc\:bg-acc:hover {
+    background: rgba(236, 178, 255, 0.10) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 12px rgba(236, 178, 255, 0.30) !important;
+}
+
+/* Generic action buttons — clean, no bulky fills */
+button:not(.rounded-full):not(.pc\:bg-acc) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 4px 8px !important;
+    color: rgba(220, 226, 245, 0.45) !important;
+    transition: color 0.2s ease !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    letter-spacing: 0.04em !important;
+}
+
+button:not(.rounded-full):not(.pc\:bg-acc):hover {
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   9. INPUTS — bottom-border only, glowing focus
+   ========================================================= */
+input,
+textarea,
+[contenteditable="true"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(236, 178, 255, 0.20) !important;
+    color: #dce2f5 !important;
+    font-family: "Inter", sans-serif !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: rgba(220, 226, 245, 0.25) !important;
+    letter-spacing: 0.05em !important;
+}
+
+input:focus,
+textarea:focus,
+[contenteditable="true"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-bottom-color: var(--primary) !important;
+}
+
+/* =========================================================
+   10. HUD LINES — dividers
+   ========================================================= */
+hr {
+    border-color: rgba(236, 178, 255, 0.08) !important;
+}
+
+/* =========================================================
+   11. TEXT STYLING
+   ========================================================= */
+p,
+span {
+    font-family: "Inter", sans-serif !important;
+    color: rgba(220, 226, 245, 0.85) !important;
+    font-feature-settings: "tnum" !important;
+}
+
+a {
+    color: var(--secondary) !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    letter-spacing: 0.03em !important;
+    transition: color 0.2s ease !important;
+    text-decoration: none !important;
+}
+
+a:hover {
+    color: var(--primary) !important;
+}
+
+nav a:hover,
+nav a.group:hover {
+    text-shadow: none !important;
+}
+
+[class*="font-semibold"],
+[class*="font-medium"],
+[class*="font-bold"] {
+    color: #f2e5ff !important;
+    font-family: "Space Grotesk", sans-serif !important;
+}
+
+[class*="text-gray"],
+.text-pri\/60,
+.dark\:text-pri-d\/60 {
+    color: rgba(220, 226, 245, 0.45) !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    font-size: 10px !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+}
+
+/* =========================================================
+   12. SVG / ICONS
+   ========================================================= */
+svg {
+    fill: currentColor !important;
+}
+
+.text-acc svg,
+svg.text-acc {
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   13. SCROLLBAR
+   ========================================================= */
+::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(236, 178, 255, 0.55) !important;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+/* =========================================================
+   14. SELECTION
+   ========================================================= */
+::selection {
+    background: var(--primary-container) !important;
+    color: #ffffff !important;
+}
+
+/* =========================================================
+   15. FEED TABS
+   ========================================================= */
+main#threads>div:first-child a {
+    font-family: "Space Grotesk", sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: rgba(220, 226, 245, 0.55) !important;
+    border-bottom: 2px solid transparent !important;
+}
+
+main#threads>div:first-child a:hover,
+main#threads>div:first-child a[class*="active"] {
+    color: var(--primary) !important;
+    border-bottom-color: var(--primary) !important;
+}
+
+/* =========================================================
+   16. STICKY HEADER
+   ========================================================= */
+.sticky,
+[class*="sticky"] {
+    background: rgba(13, 19, 33, 0.85) !important;
+    border-bottom: 1px solid rgba(236, 178, 255, 0.12) !important;
+}
+
+/* =========================================================
+   17. YOUR LISTS / RADIX DROPDOWNS
+   ========================================================= */
+[data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+    background: transparent !important;
+}
+
+div[role="menu"],
+div[role="listbox"],
+div[data-radix-menu-content],
+[data-radix-popper-content-wrapper]>div {
+    background: var(--surface-container) !important;
+    border: 1px solid rgba(236, 178, 255, 0.25) !important;
+    z-index: 9999 !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8),
+                0 0 18px rgba(236, 178, 255, 0.10) !important;
+}
+
+div[role="menu"] a,
+div[role="menu"] button,
+div[role="listbox"] a,
+div[role="listbox"] button {
+    color: rgba(220, 226, 245, 0.85) !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    letter-spacing: 0.04em !important;
+}
+
+div[role="menu"] a:hover,
+div[role="menu"] button:hover,
+div[role="listbox"] a:hover,
+div[role="listbox"] button:hover {
+    background: rgba(236, 178, 255, 0.08) !important;
+    color: var(--primary) !important;
+}
+
+/* 17b — Your Lists dropdown (feeds header) */
+div[class*="top-full"][class*="z-1000"],
+div[class*="top-full"][class*="z-1000"] * {
+    font-family: "Space Grotesk", sans-serif !important;
+}
+
+div[class*="top-full"][class*="z-1000"] {
+    background: var(--surface-container) !important;
+    border: 1px solid rgba(236, 178, 255, 0.25) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
+}
+
+div[class*="top-full"][class*="z-1000"] button {
+    background: transparent !important;
+    color: rgba(220, 226, 245, 0.8) !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border: none !important;
+}
+
+div[class*="top-full"][class*="z-1000"] button:hover {
+    background: rgba(236, 178, 255, 0.08) !important;
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   18. AVATAR OUTLINES (ghost border fallback)
+   ========================================================= */
+div.rounded-full:has(> span > span > img):not([class*="outline-purple"]) {
+    outline: 1px solid rgba(220, 226, 245, 0.35) !important;
+    outline-offset: 2px !important;
+}
+
+/* =========================================================
+   19. NAV SYMMETRY + PREMIUM ICON
+   ========================================================= */
+nav a[href="/premium"] {
+    display: block !important;
+}
+
+nav a[href="/premium"]>div::before {
+    content: "diamond" !important;
+    font-family: 'Material Symbols Outlined' !important;
+    font-size: 24px !important;
+    color: var(--primary) !important;
+    flex-shrink: 0 !important;
+    line-height: 1 !important;
+}
+
+nav a[href="/premium"]>div>span>div.flex.items-center {
+    gap: 0 !important;
+}
+
+nav a[href="/premium"]>div,
+nav a[href="/notifications"]>div {
+    padding-left: 16px !important;
+    gap: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+nav a[href="/premium"] span:not(.material-symbols-outlined),
+nav a[href="/premium"]>div,
+nav a[href="/notifications"] span,
+nav a[href="/notifications"]>div {
+    color: rgba(220, 226, 245, 0.75) !important;
+}
+
+nav a[href="/premium"].item-active span,
+nav a[href="/premium"].item-active>div,
+nav a[href="/notifications"].item-active span,
+nav a[href="/notifications"].item-active>div {
+    color: var(--primary) !important;
+}
+
+/* =========================================================
+   20. PRICE TICKER PANEL — styled as a "DATA_HUD" block
+   ========================================================= */
+#cyber-price-ticker {
+    background: rgba(7, 14, 27, 0.60) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: none !important;
+    border-left: 1px solid rgba(236, 178, 255, 0.30) !important;
+    margin: 0 0 8px !important;
+    padding: 12px 16px !important;
+    position: relative !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+}
+
+#cyber-price-ticker::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 10px !important;
+    height: 10px !important;
+    border-top: 1px solid rgba(236, 178, 255, 0.50) !important;
+    border-right: 1px solid rgba(236, 178, 255, 0.50) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+#cyber-price-ticker .ticker-title {
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3em !important;
+    color: rgba(220, 226, 245, 0.60) !important;
+    margin-bottom: 10px !important;
+    font-weight: 500 !important;
+}
+
+#cyber-price-ticker .ticker-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    border-bottom: 1px solid rgba(236, 178, 255, 0.06) !important;
+}
+
+#cyber-price-ticker .ticker-row:last-child {
+    border-bottom: none !important;
+}
+
+#cyber-price-ticker .ticker-symbol {
+    font-size: 13px !important;
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+}
+
+#cyber-price-ticker .ticker-price {
+    font-size: 13px !important;
+    color: #dce2f5 !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+#cyber-price-ticker .ticker-change {
+    font-size: 11px !important;
+    letter-spacing: 0.05em !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+#cyber-price-ticker .ticker-change.up {
+    color: var(--secondary-fixed-dim) !important;
+}
+
+#cyber-price-ticker .ticker-change.down {
+    color: #ffb1c3 !important;
+}
+
+/* =========================================================
+   21. PROFILE PAGE
+   ========================================================= */
+div.flex.gap-4:has(> a[href*="/following"]) {
+    display: none !important;
+}
+
+div.flex.flex-row.items-center.gap-2:has(> button) {
+    gap: 4px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+}
+
+div.flex.flex-row.items-center.gap-2:has(> button)::-webkit-scrollbar {
+    display: none !important;
+}
+
+div.flex.flex-row.items-center.gap-2>button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+div.relative.border-t:has(> div.flex.flex-row.items-center.gap-2) {
+    overflow: visible !important;
+}
+
+/* =========================================================
+   22. ARTICLES PAGE — filter row layout
+   ========================================================= */
+body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+}
+
+body.inleo-articles-page div.tbl\:flex.flex-row.items-center.-left-3:has(> button),
+body.inleo-articles-page div.flex.flex-row.items-center.-left-3:has(> button) {
+    display: contents !important;
+}
+
+body.inleo-articles-page div.relative.flex.ml-auto:has(> button),
+body.inleo-articles-page div.relative.flex[class*="ml-auto"]:has(> button),
+body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+span.w-\[1px\].h-5.bg-pri-d\/\[\.25\].dark\:bg-pri\/\[\.25\].flex {
+    display: none !important;
+}
+
+body.inleo-articles-page div.tbl\:flex.flex-row.items-center.-left-3>button,
+body.inleo-articles-page div.flex.flex-row.items-center.-left-3>button,
+body.inleo-articles-page div.relative.flex.ml-auto:has(> button),
+body.inleo-articles-page div.relative.flex[class*="ml-auto"]:has(> button),
+body.inleo-articles-page div.relative.flex.tbl\:ml-5:has(> button) {
+    flex: 1 1 0 !important;
+}
+
+body.inleo-articles-page div.flex.flex-1.flex-row.items-center.py-2.px-5.gap-x-1 button {
+    padding: 0 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    height: 36px !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+}
+
+body.inleo-articles-page div.relative.flex.ml-auto>button,
+body.inleo-articles-page div.relative.flex[class*="ml-auto"]>button,
+body.inleo-articles-page div.relative.flex.tbl\:ml-5>button {
+    width: 100% !important;
+}
+
+/* =========================================================
+   23. PUBLISH DROPDOWN MENU
+   ========================================================= */
+nav div[class*="w-[calc"] {
+    background: var(--surface-container) !important;
+    border: 1px solid rgba(236, 178, 255, 0.25) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9),
+                0 0 18px rgba(236, 178, 255, 0.08) !important;
+    z-index: 9999 !important;
+    padding: 4px !important;
+}
+
+nav div[class*="w-[calc"] a {
+    color: rgba(220, 226, 245, 0.82) !important;
+    font-family: "Space Grotesk", sans-serif !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    padding: 10px 14px !important;
+    transition: all 0.15s ease !important;
+    background: transparent !important;
+}
+
+nav div[class*="w-[calc"] a:hover {
+    background: rgba(236, 178, 255, 0.08) !important;
+    color: var(--primary) !important;
+    border-left: 2px solid var(--primary) !important;
+}
+
+/* =========================================================
+   24. MUTE FEATURE
+   ========================================================= */
+button.inleo-mute-btn.inleo-mute-btn {
+    font-family: "Space Grotesk", sans-serif !important;
+    font-size: 10px !important;
+    color: #ffb1c3 !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    letter-spacing: 0.1em !important;
+    border-radius: 0 !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+button.inleo-mute-btn.inleo-mute-btn:hover {
+    background: rgba(255, 177, 195, 0.12) !important;
+    color: #fff !important;
+    text-shadow: 0 0 6px rgba(255, 177, 195, 0.55) !important;
+}
+
+.inleo-mute-wrapper {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+    margin-left: 6px !important;
+    order: 99 !important;
+}
+
+div[class*="shadow-["][class*="text-xs"] .inleo-mute-btn,
+div[class*="shadow-["][class*="text-xs"] .inleo-mute-wrapper,
+[data-radix-popper-content-wrapper] .inleo-mute-btn,
+[data-radix-popper-content-wrapper] .inleo-mute-wrapper,
+div[role="tooltip"] .inleo-mute-btn,
+div[role="tooltip"] .inleo-mute-wrapper {
+    display: none !important;
+}
+
+.inleo-muted-post,
+.inleo-phrase-muted {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* =========================================================
+   25. WALLET PAGE
+   ========================================================= */
+body.inleo-wallet-page #cyber-price-ticker {
+    display: none !important;
+}
+
+body.inleo-wallet-page nav div:has(> button[title="More"]),
+body.inleo-wallet-page nav button[title="More"] {
+    display: none !important;
+}
+
+/* =========================================================
+   26. AVATAR OUTLINES — self vs other
+   ========================================================= */
+.avatar-self-target {
+    border-color: var(--primary) !important;
+    border-width: 1.5px !important;
+    border-style: solid !important;
+    outline: none !important;
+    box-shadow: 0 0 8px rgba(236, 178, 255, 0.45) !important;
+}
+
+.avatar-other-target {
+    border-color: var(--secondary-fixed-dim) !important;
+    border-width: 1.5px !important;
+    border-style: solid !important;
+    outline: none !important;
+}

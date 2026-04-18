@@ -108,6 +108,22 @@
       transition: opacity 0.3s;
     }
     .save-indicator.show { opacity: 1; }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+    }
+    .checkbox-row input[type="checkbox"] { flex: 0 0 auto; width: auto; accent-color: #00f3ff; }
+    .small-number { max-width: 80px; }
+    .hint {
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -117,6 +133,13 @@
     <button id="addBtn">Add</button>
   </div>
   <ul id="userList"></ul>
+
+  <h2>Muted Phrases</h2>
+  <div class="setting-row">
+    <div class="hint" style="margin-bottom:8px;">Hide posts containing these phrases — one per line. The user is NOT muted, just the matching post. Case-insensitive.</div>
+    <textarea id="mutedPhrases" rows="4" style="width:100%;resize:vertical;padding:8px;border:1px solid rgba(0,243,255,0.3);background:rgba(0,0,0,0.5);color:#00f3ff;font-family:inherit;font-size:12px;" placeholder="/rafiki&#10;another phrase"></textarea>
+    <span class="save-indicator" id="phrases-saved">Saved</span>
+  </div>
 
   <h2>Wallet Settings</h2>
   <div class="setting-row">
@@ -128,6 +151,39 @@
       </select>
     </div>
     <span class="save-indicator" id="node-saved">Saved</span>
+  </div>
+
+  <h2>Hashtag Assistant</h2>
+  <div class="setting-row">
+    <label class="checkbox-row">
+      <input type="checkbox" id="hashtag-enabled" />
+      <span>Suggest hashtags while composing posts</span>
+    </label>
+    <div class="hint">Shows clickable tag chips under the post editor. Click a chip to insert it into your post.</div>
+  </div>
+
+  <div class="setting-row">
+    <label class="setting-label">Max suggestions</label>
+    <div class="input-group">
+      <input type="number" id="hashtag-max" min="1" max="15" class="small-number" />
+    </div>
+  </div>
+
+  <div class="setting-row">
+    <label class="setting-label">Always Include (comma-separated)</label>
+    <div class="input-group">
+      <input type="text" id="hashtag-always" placeholder="e.g. leofinance, hive" />
+    </div>
+    <div class="hint">These tags are always offered as suggestions on every post.</div>
+  </div>
+
+  <div class="setting-row">
+    <label class="setting-label">Blocked Tags (comma-separated)</label>
+    <div class="input-group">
+      <input type="text" id="hashtag-blocked" placeholder="e.g. nsfw, spam" />
+    </div>
+    <div class="hint">These tags will never appear in the suggestions.</div>
+    <span class="save-indicator" id="hashtag-saved">Saved</span>
   </div>
 
   <script src="options.js"></script>
